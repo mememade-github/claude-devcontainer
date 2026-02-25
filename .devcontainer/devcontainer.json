@@ -1,0 +1,110 @@
+{
+  // ==========================================================================
+  // Claude Code DevContainer — Universal Base Template
+  // ==========================================================================
+  // 표준 근거:
+  //   - DevContainer Specification: https://containers.dev/implementors/json_reference/
+  //   - Anthropic Claude Code: https://github.com/anthropics/claude-code/tree/main/.devcontainer
+  // ==========================================================================
+
+  "name": "Claude Code DevContainer",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "claude-code",
+  "workspaceFolder": "/workspaces",
+
+  // ==========================================================================
+  // Container Environment
+  // ==========================================================================
+  "containerEnv": {
+    "DEVCONTAINER": "true",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "LANG": "en_US.UTF-8",
+    "LC_ALL": "en_US.UTF-8"
+  },
+
+  "remoteEnv": {
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0"
+  },
+
+  "features": {},
+
+  // ==========================================================================
+  // VS Code
+  // ==========================================================================
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": null,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "files.encoding": "utf8",
+        "files.eol": "\n",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.watcherExclude": {
+          "**/.git/objects/**": true,
+          "**/node_modules/**": true
+        }
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+
+  // ==========================================================================
+  // Ports — .env PORT_* 변수와 일치시키세요
+  // .env 포트 변경 시 여기도 함께 수정 필요
+  // ==========================================================================
+  "forwardPorts": [3000, 8080, 5432, 6379],
+  "portsAttributes": {
+    "3000": {
+      "label": "App (.env PORT_APP)",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "API (.env PORT_API)",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "Database (.env PORT_DB)",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Extra (.env PORT_EXTRA)",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // ==========================================================================
+  // Lifecycle
+  // ==========================================================================
+  "postCreateCommand": "/usr/local/bin/setup-env.sh",
+  "postStartCommand": "git config core.filemode false 2>/dev/null || true",
+  "waitFor": "postCreateCommand",
+
+  // ==========================================================================
+  // User & Process
+  // ==========================================================================
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "init": true,
+  "shutdownAction": "stopCompose",
+
+  // ==========================================================================
+  // Mounts
+  // SSH: 호스트 키 바인드 (git push/pull)
+  // Claude config: 인증 토큰 영속 (rebuild 후에도 유지)
+  // Command history: 명령 히스토리 영속
+  // ==========================================================================
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+    "source=claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=command-history-${devcontainerId},target=/commandhistory,type=volume"
+  ]
+}

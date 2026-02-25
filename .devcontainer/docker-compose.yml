@@ -1,0 +1,62 @@
+# =============================================================================
+# Claude Code DevContainer — Docker Compose
+# =============================================================================
+# 모든 설정은 .env 파일에서 관리합니다.
+#
+# 사용:
+#   docker compose up -d
+#
+# 다중 인스턴스:
+#   cp .env .env.project-b
+#   docker compose --env-file .env.project-b up -d
+# =============================================================================
+
+services:
+  claude-code:
+    container_name: ${CONTAINER_NAME:-claude-code-dev}
+    image: ${IMAGE_NAME:-claude-code}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - CLAUDE_NODE_VERSION=${CLAUDE_NODE_VERSION:-20}
+        - PROJECT_NODE_VERSION=${PROJECT_NODE_VERSION:-}
+
+    volumes:
+      - ${HOST_WORKSPACE_PATH:-..}:/workspaces:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    # =========================================================================
+    # Ports — .env PORT_* 변수로 제어
+    # 사용하지 않는 포트는 주석 처리하세요.
+    # =========================================================================
+    ports:
+      - "${PORT_APP:-3000}:${PORT_APP:-3000}"
+      - "${PORT_API:-8080}:${PORT_API:-8080}"
+      - "${PORT_DB:-5432}:${PORT_DB:-5432}"
+      - "${PORT_EXTRA:-6379}:${PORT_EXTRA:-6379}"
+
+    # =========================================================================
+    # DNS — Docker Desktop 내부 DNS에 의존하지 않음
+    # Windows/WSL2에서 Docker Desktop DNS(192.168.65.x) 해석 실패 방지
+    # =========================================================================
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+
+    environment:
+      - TZ=${TZ:-Asia/Seoul}
+
+    stdin_open: true
+    tty: true
+
+    healthcheck:
+      test: ["CMD-SHELL", "node --version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # command는 Dockerfile CMD ["sleep", "infinity"]가 담당
+    # ENTRYPOINT가 항상 setup-env.sh를 실행한 후 CMD를 exec함

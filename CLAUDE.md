@@ -1,0 +1,116 @@
+# CLAUDE.md — Project Workspace
+
+## Identity
+
+- **Workspace**: `/workspaces/`
+- **Environment**: Dev Container (Ubuntu 22.04, Node.js 20, user=vscode)
+
+## Project Structure
+
+```
+/workspaces/                        # Project root
+├── CLAUDE.md                       # Governance rules (this file)
+├── PROJECT.md                      # Domain context (customize per project)
+├── REFERENCE.md                    # Commands and procedures
+├── .claude/                        # Claude Code agent system
+│   ├── settings.json               # Hooks & environment
+│   ├── agents/                     # 14 agents
+│   ├── hooks/                      # 13 automation hooks
+│   ├── skills/                     # 12 /command skills
+│   ├── rules/                      # Standard rules (portable)
+│   ├── rules/project/              # Project-specific rules
+│   ├── instincts/                  # Learning system
+│   └── agent-memory/               # Per-agent cross-session memory
+├── .devcontainer/                  # Container configuration
+│   ├── Dockerfile                  # Image (Node.js + Python/Serena + tools)
+│   ├── docker-compose.yml          # Service + ports + volumes
+│   ├── devcontainer.json           # VS Code integration + lifecycle
+│   ├── setup-env.sh                # postCreateCommand
+│   └── .env                        # ALL user configuration
+└── src/                            # Source code (your project)
+```
+
+## Core Principle: INTEGRITY
+
+**Every claim must be verified by execution before statement.**
+
+- Don't say "tests pass" without running them
+- Don't say "build succeeds" without building
+- Don't say "works" without testing
+
+## Destructive Operations (APPROVAL REQUIRED)
+
+Never execute without explicit user approval:
+`rm -rf`, `mv`/`cp` (overwrite), `git push --force`, `git reset --hard`, `DROP`/`DELETE` (DB)
+
+## Automated Workflow (MANDATORY)
+
+These rules are enforced automatically by hooks. No user commands required.
+
+### 1. Session Start (automated by SessionStart hook)
+
+- Hook injects: current branch, active WIP tasks, environment info
+- **If WIP tasks exist**: Immediately read the WIP README.md and resume work.
+  Do NOT wait for user instruction — report status and continue the task.
+- **If no WIP**: Report readiness and wait for user instruction.
+- **Always**: Check auto memory (MEMORY.md) for Known Issues.
+
+### 2. Code Change Cycle (Agent Teams: quality)
+
+After completing a batch of code changes:
+1. Delegate review to **code-reviewer** agent (team: quality) via Task tool
+2. If reviewer finds issues → fix before proceeding
+3. This step is NOT optional — skip only if changes are trivial
+
+### 3. Pre-Commit Gate (automated by pre-commit-gate.sh)
+
+Before ANY `git commit`:
+1. Run verification for affected code (auto-detected by file type)
+2. All checks MUST pass before commit. No `--no-verify`.
+
+### 4. Multi-Session Tasks (Agent Teams: workflow)
+
+- Tasks likely to span sessions → create WIP via **wip-manager** agent
+- WIP location: `wip/task-YYYYMMDD-description/README.md`
+- Auto-resume at next session start
+- Delete WIP directory when task is complete
+
+### 5. Agent Teams Delegation
+
+| Team | Agent | Auto-trigger |
+|------|-------|-------------|
+| quality | code-reviewer | After code changes |
+| quality | environment-checker | On env issues |
+| workflow | wip-manager | When task spans sessions |
+
+Delegation via Task tool with `subagent_type` parameter.
+- **Team lifecycle**: `TeamCreate` at first delegation → `TeamDelete` when all agents complete.
+  Do NOT leave teams running between tasks.
+- Agent model is set per agent in `.claude/agents/` frontmatter (`model: opus/sonnet/haiku`).
+- Each agent has its own memory directory (`.claude/agent-memory/<agent-name>/`).
+  Enable cross-session learning with `memory: project` in agent frontmatter.
+
+## Coding Rules
+
+1. **Read first** — Read existing code before modifying
+2. **Keep it simple** — Minimum code for the task
+3. **Follow patterns** — Match existing codebase style
+4. **No secrets** — Never commit credentials or API keys
+5. **Verify** — Build and test before claiming success
+
+## Communication
+
+- **Language**: 사용자에게 응답할 때 반드시 한국어를 사용합니다.
+
+## Environment
+
+- **Ports**: `.devcontainer/.env`에서 관리 (PORT_APP, PORT_API, PORT_DB, PORT_EXTRA)
+- **Node.js 격리**: Claude Code(v20 locked) / Project(nvm, .nvmrc 지원)
+- **Persistent volumes**: `~/.claude` (인증 토큰), `/commandhistory` (히스토리)
+- **9p mount**: `core.filemode=false` (postStartCommand 자동 적용)
+- **MCP**: Context7 (documentation), Serena (code intelligence) — setup-env.sh 자동 설정
+
+## Extended Reference
+
+@PROJECT.md
+@REFERENCE.md
