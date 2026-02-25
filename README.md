@@ -1,175 +1,109 @@
 # Claude Code DevContainer
 
-모든 개발 프로젝트의 시작 템플릿.
-Claude Code + Agent System이 포함된 격리된 개발 환경.
+Claude Code + 14 Agent System이 포함된 격리 개발 환경 템플릿.
 
----
-
-## 필요 조건
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [VS Code](https://code.visualstudio.com/) + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+**필요 조건**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ---
 
 ## 시작하기
 
-### 1. 환경 설정
+### Step 1: 클론 & 빌드
 
 ```bash
-cp .devcontainer/.env.example .devcontainer/.env
+git clone https://github.com/mememade-github/claude-code-devcontainer.git my-project
+cd my-project/.devcontainer
+docker compose up -d --build    # 첫 빌드 ~3-5분
 ```
 
-`.devcontainer/.env`을 열어 프로젝트에 맞게 수정:
+### Step 2: 컨테이너 진입
 
-| 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `COMPOSE_PROJECT_NAME` | `claude-code` | Docker 프로젝트명 (인스턴스별 고유) |
-| `CONTAINER_NAME` | `claude-code-dev` | 컨테이너 이름 |
-| `PORT_APP` | `3000` | 앱/dev server 포트 |
-| `PORT_API` | `8080` | API 서버 포트 |
-| `PORT_DB` | `5432` | 데이터베이스 포트 |
-| `PORT_EXTRA` | `6379` | 추가 포트 (Redis 등) |
-| `PROJECT_NODE_VERSION` | *(비어있음)* | 프로젝트 Node.js 버전 |
+```bash
+docker exec -it claude-code-dev bash
+```
 
-### 2. 컨테이너 열기
+### Step 3: Claude Code 실행
 
-1. VS Code로 이 폴더 열기
+```bash
+claude --dangerously-skip-permissions
+```
+
+### Step 4: 프로젝트 초기 설정
+
+Claude 프롬프트에 아래 전체를 붙여넣기:
+
+```
+프로젝트 초기 설정을 수행해 주세요.
+
+## 수집할 정보 (대화형으로 질문)
+- 프로젝트명, 설명, GitHub URL
+- 언어/프레임워크 (예: Python+FastAPI, TypeScript+Next.js, Go+Gin)
+- 필요한 서비스 (PostgreSQL, Redis, OpenSearch 등)
+- 포트 매핑 (기본: APP=3000, API=8080, DB=5432, EXTRA=6379)
+- 서버 정보 (있으면)
+- 테스트 프레임워크, CI/CD, 커밋 메시지 언어
+
+## 수행할 작업
+1. 프로젝트에 필요한 언어/도구 설치 (apt, nvm, pip, cargo 등)
+2. .serena/project.yml — languages 배열에 프로젝트 언어 추가
+3. CLAUDE.md — Identity 섹션 업데이트
+4. PROJECT.md — 프로젝트에 맞게 재작성
+5. REFERENCE.md — 프로젝트별 명령어 업데이트
+6. .devcontainer/.env — 포트, 타임존, Node 버전 설정
+7. .devcontainer/devcontainer.json — forwardPorts 동기화
+8. .claude/rules/project/ — 프로젝트 코딩 규칙 생성
+
+## 검증
+- bash .devcontainer/verify-template.sh
+- bash .claude/hooks/test-hooks.sh
+
+## 주의
+- .claude/settings.json, Dockerfile, 에이전트 frontmatter는 수정 금지
+
+질문부터 시작해 주세요.
+```
+
+### Step 5: 저장
+
+```bash
+git add -A && git commit -m "chore: initialize project"
+```
+
+---
+
+## VS Code로 사용하기 (선택)
+
+CLI 대신 VS Code Dev Containers를 사용할 수 있습니다.
+
+**추가 필요**: [VS Code](https://code.visualstudio.com/) + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+1. VS Code로 프로젝트 폴더 열기
 2. 좌측 하단 `><` → **Reopen in Container**
-3. 첫 빌드: ~3-5분 소요
+3. 터미널에서 `claude` 실행 → Step 4 동일
 
-### 3. Claude Code 시작
-
-```bash
-claude
-```
+> VS Code 사용 시 `--dangerously-skip-permissions` 불필요 (터미널에서 권한 프롬프트 가능).
 
 ---
 
-## 포트 관리
+## 포함 사항
 
-포트는 `.devcontainer/.env`에서 관리합니다.
+| 구성 | 수량 | 내용 |
+|------|------|------|
+| Agents | 14 | code-reviewer, security-reviewer, debugger, planner, architect 등 |
+| Hooks | 13 | 세션 시작, 파괴적 명령 차단, 코드리뷰 자동 트리거, 커밋 전 검증 등 |
+| Skills | 12 | /commit, /pr, /verify, /status, /deploy, /learn 등 |
+| MCP | 2 | Context7 (문서 검색), Serena (코드 인텔리전스) |
+| Tools | 20+ | ripgrep, fd, fzf, jq, tmux, docker CLI, gh 등 |
 
-**포트 변경 시:**
-1. `.devcontainer/.env`의 `PORT_*` 값 변경
-2. `.devcontainer/devcontainer.json`의 `forwardPorts` 배열도 같은 값으로 수정
-3. Rebuild Container
+## 포트 변경
 
-**다중 인스턴스 (포트 충돌 방지):**
-```bash
-cp .devcontainer/.env .devcontainer/.env.project-b
-# .env.project-b 수정:
-#   COMPOSE_PROJECT_NAME=my-project-b
-#   CONTAINER_NAME=my-project-b-dev
-#   PORT_APP=3001
-#   PORT_API=8081
-docker compose -f .devcontainer/docker-compose.yml --env-file .devcontainer/.env.project-b up -d
-```
-
-**사용하지 않는 포트:**
-`docker-compose.yml`의 해당 `ports` 줄을 주석 처리하세요.
-
----
-
-## Node.js 버전 관리
-
-Claude Code는 Node 20으로 동작하며, 프로젝트 Node와 격리되어 있습니다.
-
-**프로젝트에 다른 Node 버전 필요 시:**
-
-방법 A — `.nvmrc` (권장):
-```bash
-echo "18" > .nvmrc
-# 터미널 재시작 → 자동 활성화
-```
-
-방법 B — `.env`에서 설정:
-```
-PROJECT_NODE_VERSION=18
-```
-→ Rebuild Container
-
----
-
-## 언어/도구 설치
-
-베이스 템플릿에는 언어가 포함되지 않습니다. 필요한 것을 직접 설치하세요.
-
-```bash
-# Python
-sudo apt update && sudo apt install -y python3 python3-pip python3-venv
-
-# Go
-sudo apt install -y golang
-
-# Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# uv (Python 패키지 관리자)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-영구 설치가 필요하면 `Dockerfile`에 추가 후 Rebuild.
-
----
-
-## Agent System 구성
-
-### 기동 후 자동 동작
-
-컨테이너 시작 → `claude` 실행 시 Agent System이 자동 활성화됩니다:
-
-- **SessionStart hook**: git 상태, WIP 태스크, Known Issues 보고
-- **코드 수정 후**: code-reviewer 자동 트리거
-- **커밋 전**: pre-commit-gate (검증 통과 필수)
-- **세션 종료 시**: agent-evolver (에이전트 학습)
-
-### 프로젝트 특화 설정
-
-```
-.claude/
-├── rules/project/     ← 프로젝트 규칙 추가 (*.md 파일)
-├── agents/            ← 에이전트 수정/추가
-├── skills/            ← /command 추가
-└── agent-memory/      ← 에이전트별 학습 메모리
-```
-
-**프로젝트 규칙 추가 예시** (`.claude/rules/project/my-rules.md`):
-```markdown
-# My Project Rules
-- API 엔드포인트에 OpenAPI docstring 필수
-- 데이터베이스 호출은 항상 async/await 사용
-- 테스트 커버리지 80% 이상 유지
-```
-
-### 주요 에이전트
-
-| 에이전트 | 동작 시점 | 기능 |
-|---------|----------|------|
-| code-reviewer | 코드 수정 후 | 버그, 스타일, 보안 리뷰 |
-| planner | 복잡한 작업 요청 시 | 구현 계획 수립 |
-| debugger | 에러 발생 시 | 근본 원인 분석 |
-| wip-manager | 멀티세션 작업 | 세션간 진행 상황 추적 |
-
-전체 14개 에이전트 목록: `REFERENCE.md` 참조
-
----
+`.devcontainer/.env`의 `PORT_*` 값 변경 후 `.devcontainer/devcontainer.json`의 `forwardPorts`도 동일하게 수정. 이후 컨테이너 재빌드.
 
 ## Troubleshooting
 
 | 문제 | 해결 |
 |------|------|
-| 컨테이너 빌드 실패 | `docker compose -f .devcontainer/docker-compose.yml build --no-cache` |
-| Claude 재인증 요청 | `~/.claude` named volume 확인: `docker volume ls \| grep claude-config` |
-| 잘못된 Node 버전 | `nvm use` 또는 `.nvmrc` 파일 생성 |
-| 포트 충돌 | `.env`에서 `PORT_*` 변경 + `devcontainer.json` forwardPorts 수정 |
+| 빌드 실패 | `docker compose build --no-cache` |
+| Claude 재인증 | `docker volume ls \| grep claude-config` 확인 |
 | MCP 연결 실패 | `rm ~/.claude.json && /usr/local/bin/setup-env.sh` |
-
----
-
-## Variants
-
-| 템플릿 | 용도 |
-|--------|------|
-| `claude-code-devcontainer` | **이 템플릿** — 범용 베이스 |
-| `claude-code-devcontainer-data` | Jupyter + Data Science (Python, pandas, matplotlib 등) |
+| 포트 충돌 | `.env` + `devcontainer.json` 포트 변경 후 재빌드 |
