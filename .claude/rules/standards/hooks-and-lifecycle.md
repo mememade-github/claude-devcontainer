@@ -1,8 +1,9 @@
 # Hooks and Lifecycle Standard
 
 ## Source
-- Official: Claude Code hooks documentation (https://code.claude.com/docs/en/hooks)
-- Derived: Project observe.sh, evolution-gate.sh patterns
+- Official: Claude Code hooks reference (https://code.claude.com/docs/en/hooks)
+- Official: Claude Code Best Practices — "Address root causes, not symptoms" (https://code.claude.com/docs/en/best-practices)
+- Derived: Project observe.sh, evolution-gate.sh, error-tracker.sh patterns
 - Last verified: 2026-02-26
 
 ## Standard
@@ -99,6 +100,7 @@ Observation hooks (PreToolUse/PostToolUse) MUST record:
 - **Observation hooks**: Non-blocking (exit 0 always), append-only
 - **Gate hooks** (evolution-gate, pre-commit): May block (exit 2, stderr feedback)
 - **Suggestion hooks** (suggest-compact): Non-blocking, advisory only
+- **Context-injection hooks** (code-review-reminder, error-tracker): Non-blocking, inject `additionalContext` via JSON output
 
 ### Log Rotation
 
