@@ -15,7 +15,7 @@
 ├── .claude/                        # Claude Code agent system
 │   ├── settings.json               # Hooks & environment
 │   ├── agents/                     # 13 agents
-│   ├── hooks/                      # 11 automation hooks
+│   ├── hooks/                      # 12 automation hooks
 │   ├── skills/                     # 8 /command skills
 │   ├── rules/                      # Standard rules (portable)
 │   ├── rules/project/              # Project-specific rules
@@ -35,7 +35,7 @@
 
 | Tier | 역할 | 포함 |
 |------|------|------|
-| **Tier 1** | 베이스 템플릿 (이 저장소) | 13 agents, 11 hooks, 8 skills, DevContainer 인프라 |
+| **Tier 1** | 베이스 템플릿 (이 저장소) | 13 agents, 12 hooks, 8 skills, DevContainer 인프라 |
 | **Domain** | Tier 1 + 도메인 특화 기능 | 파생 프로젝트가 필요에 따라 추가 |
 
 ### Tier 1에 포함되지 않는 요소
