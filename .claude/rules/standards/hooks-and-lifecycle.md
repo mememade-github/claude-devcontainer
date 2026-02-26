@@ -100,7 +100,7 @@ Observation hooks (PreToolUse/PostToolUse) MUST record:
 - **Observation hooks**: Non-blocking (exit 0 always), append-only
 - **Gate hooks** (evolution-gate, pre-commit): May block (exit 2, stderr feedback)
 - **Suggestion hooks** (suggest-compact): Non-blocking, advisory only
-- **Context-injection hooks** (code-review-reminder, error-tracker): Non-blocking, inject `additionalContext` via JSON output
+- **Context-injection hooks** (code-review-reminder, error-tracker, standards-reminder): Non-blocking, inject `additionalContext` via JSON output
 
 ### Log Rotation
 
