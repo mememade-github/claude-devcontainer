@@ -116,7 +116,7 @@ jq -r '.mcpServers | keys[]' ~/.claude.json 2>/dev/null
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 
 # Check marker ages
-for marker in .pending-review .last-verification .last-evolution; do
+for marker in .pending-review .last-verification; do
   FILE="$PROJECT_DIR/.claude/$marker"
   [ -f "$FILE" ] && echo "$marker: $(( ($(date +%s) - $(stat -c %Y "$FILE")) / 60 ))min old"
 done

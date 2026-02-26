@@ -14,12 +14,11 @@
 ├── REFERENCE.md                    # Commands and procedures
 ├── .claude/                        # Claude Code agent system
 │   ├── settings.json               # Hooks & environment
-│   ├── agents/                     # 14 agents
-│   ├── hooks/                      # 13 automation hooks
-│   ├── skills/                     # 12 /command skills
+│   ├── agents/                     # 13 agents
+│   ├── hooks/                      # 10 automation hooks
+│   ├── skills/                     # 7 /command skills
 │   ├── rules/                      # Standard rules (portable)
 │   ├── rules/project/              # Project-specific rules
-│   ├── instincts/                  # Learning system
 │   └── agent-memory/               # Per-agent cross-session memory
 ├── .devcontainer/                  # Container configuration
 │   ├── Dockerfile                  # Image (Node.js + Python/Serena + tools)
@@ -29,6 +28,23 @@
 │   └── .env                        # ALL user configuration
 └── src/                            # Source code (your project)
 ```
+
+## Template Hierarchy
+
+이 저장소는 **Tier 1 베이스 템플릿**입니다. 모든 Claude Code DevContainer 프로젝트가 이 템플릿에서 파생됩니다.
+
+| Tier | 역할 | 포함 |
+|------|------|------|
+| **Tier 1** | 베이스 템플릿 (이 저장소) | 13 agents, 10 hooks, 7 skills, DevContainer 인프라 |
+| **Domain** | Tier 1 + 도메인 특화 기능 | 파생 프로젝트가 필요에 따라 추가 |
+
+### Tier 1에 포함되지 않는 요소
+
+도메인 프로젝트에서 필요에 따라 추가하는 기능:
+- evolution 시스템 (agent-evolver, observe/evolution-gate/mark-evolved hooks)
+- instincts 디렉토리 및 학습 시스템
+- evolution 관련 스킬 (/evolve, /learn, /instinct-status, /instinct-export, /instinct-import)
+- 프로젝트별 에이전트 및 도메인 규칙
 
 ## Core Principle: INTEGRITY
 

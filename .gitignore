@@ -29,13 +29,11 @@ yarn-error.log*
 # -----------------------------------------------------------------------------
 .claude/.tool-call-counter
 .claude/.last-verification
-.claude/.last-evolution
 .claude/.pending-review
 .claude/.review-done
 .claude/subagent.log
 .claude/.update-check-cache
 .claude/settings.local.json
-.claude/instincts/observations.jsonl
 .mcp.json
 
 # -----------------------------------------------------------------------------
