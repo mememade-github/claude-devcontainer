@@ -1,5 +1,5 @@
 # =============================================================================
-# Claude Code DevContainer — Universal Base Template
+# Claude DevContainer — Universal Base Template
 # =============================================================================
 # Claude Code CLI + Serena MCP + Shell 도구 + Agent System
 # 프로젝트 언어/프레임워크는 사용자가 직접 설치 (Go, Rust, Java, etc.)
@@ -10,8 +10,8 @@
 #   프로젝트용 Node.js는 PROJECT_NODE_VERSION으로 별도 설치 가능
 #
 # Variants:
-#   claude-code-devcontainer       ← THIS (범용 베이스)
-#   claude-code-devcontainer-data  ← Jupyter + Data Science (이 템플릿 + DS 패키지)
+#   claude-devcontainer       ← THIS (범용 베이스)
+#   claude-devcontainer-data  ← Jupyter + Data Science (이 템플릿 + DS 패키지)
 # =============================================================================
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 

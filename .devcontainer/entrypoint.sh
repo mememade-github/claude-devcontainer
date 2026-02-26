@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Claude Code DevContainer — Container Entrypoint
+# Claude DevContainer — Container Entrypoint
 # =============================================================================
 # 컨테이너 시작 시 항상 실행됨.
 # docker compose up -d, VS Code Reopen in Container 모두 이 스크립트를 통과.
