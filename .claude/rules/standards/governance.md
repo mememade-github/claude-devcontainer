@@ -2,6 +2,7 @@
 
 ## Source
 - Official: Claude Code constitutional governance model (2026)
+- Official: Claude Code Best Practices — "Address root causes, not symptoms" (https://code.claude.com/docs/en/best-practices)
 - Derived: CLAUDE.md governance principles
 - Last verified: 2026-02-26
 
@@ -26,6 +27,7 @@ These MUST NOT be modified by any automated process:
 3. **No secrets**: Never commit credentials or API keys
 4. **Read first**: Read existing code before modifying
 5. **Verify**: Build and test before claiming success
+6. **Fix root causes**: Diagnose and fix root causes on error. No workarounds or silent bypass
 
 ### Mutable Artifacts (agent-evolver scope)
 

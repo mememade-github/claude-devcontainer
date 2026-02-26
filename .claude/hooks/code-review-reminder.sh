@@ -14,16 +14,15 @@ if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only track changes in products/ directory
-if ! echo "$FILE_PATH" | grep -q '/products/'; then
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+
+# Only track changes in products/ directory (relative to project root)
+RELATIVE_PATH=$(echo "$FILE_PATH" | sed "s|^$PROJECT_DIR/||")
+if ! echo "$RELATIVE_PATH" | grep -q '^products/'; then
   exit 0
 fi
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 MARKER="$PROJECT_DIR/.claude/.pending-review"
-
-# Append modified file to pending review list (deduplicated)
-RELATIVE_PATH=$(echo "$FILE_PATH" | sed "s|$PROJECT_DIR/||")
 if [ -f "$MARKER" ]; then
   if ! grep -qF "$RELATIVE_PATH" "$MARKER"; then
     echo "$RELATIVE_PATH" >> "$MARKER"
