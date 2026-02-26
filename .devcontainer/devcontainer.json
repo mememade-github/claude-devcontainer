@@ -1,15 +1,15 @@
 {
   // ==========================================================================
-  // Claude Code DevContainer — Universal Base Template
+  // Claude DevContainer — Universal Base Template
   // ==========================================================================
   // 표준 근거:
   //   - DevContainer Specification: https://containers.dev/implementors/json_reference/
   //   - Anthropic Claude Code: https://github.com/anthropics/claude-code/tree/main/.devcontainer
   // ==========================================================================
 
-  "name": "Claude Code DevContainer",
+  "name": "Claude DevContainer",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "claude-code",
+  "service": "claude-devcontainer",
   "workspaceFolder": "/workspaces",
 
   // ==========================================================================

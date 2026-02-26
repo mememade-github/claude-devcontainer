@@ -9,9 +9,9 @@
 
 | 변수 | 기본값 | 참조 위치 | 용도 |
 |------|--------|----------|------|
-| `COMPOSE_PROJECT_NAME` | `claude-code` | docker-compose.yml | Docker 네임스페이스 |
-| `CONTAINER_NAME` | `claude-code-dev` | docker-compose.yml | 컨테이너 이름 |
-| `IMAGE_NAME` | `claude-code` | docker-compose.yml | 이미지 이름 |
+| `COMPOSE_PROJECT_NAME` | `claude-devcontainer` | docker-compose.yml | Docker 네임스페이스 |
+| `CONTAINER_NAME` | `claude-dev` | docker-compose.yml | 컨테이너 이름 |
+| `IMAGE_NAME` | `claude-devcontainer` | docker-compose.yml | 이미지 이름 |
 | `IMAGE_TAG` | `latest` | docker-compose.yml | 이미지 태그 |
 | `TZ` | `UTC` | docker-compose.yml | 타임존 (.env에서 오버라이드) |
 | `CLAUDE_NODE_VERSION` | `20` | Dockerfile ARG | Claude Code Node.js |

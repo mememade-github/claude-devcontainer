@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Claude Code DevContainer — Environment Setup (postCreateCommand)
+# Claude DevContainer — Environment Setup (postCreateCommand)
 # =============================================================================
 set -e
 
@@ -12,7 +12,7 @@ STEP=0
 step() { STEP=$((STEP + 1)); echo "[${STEP}/${STEP_TOTAL}] $1"; }
 
 echo "=============================================="
-echo "  Claude Code DevContainer Setup"
+echo "  Claude DevContainer Setup"
 echo "=============================================="
 echo ""
 
@@ -99,7 +99,7 @@ else
     jq --arg uv "$UV_PATH" --arg dir "$SERENA_DIR" '.mcpServers.serena = {
       "type": "stdio",
       "command": $uv,
-      "args": ["run", "--directory", $dir, "serena-mcp-server", "--context", "claude-code", "--project-from-cwd"],
+      "args": ["run", "--directory", $dir, "serena-mcp-server", "--context", "claude-devcontainer", "--project-from-cwd"],
       "env": {}
     }' "$CLAUDE_CONFIG" > /tmp/claude.json.tmp && mv /tmp/claude.json.tmp "$CLAUDE_CONFIG"
     echo "      serena: OK"

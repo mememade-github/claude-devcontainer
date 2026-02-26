@@ -1,6 +1,6 @@
 {
   // ==========================================================================
-  // Claude Code DevContainer — Debug Configurations
+  // Claude DevContainer — Debug Configurations
   // ==========================================================================
   // 프로젝트에 맞는 디버그 구성을 추가하세요.
   // Python: debugpy, Node.js: node, Go: dlv

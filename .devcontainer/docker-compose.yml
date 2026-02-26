@@ -1,5 +1,5 @@
 # =============================================================================
-# Claude Code DevContainer — Docker Compose
+# Claude DevContainer — Docker Compose
 # =============================================================================
 # 모든 설정은 .env 파일에서 관리합니다.
 #
@@ -12,9 +12,9 @@
 # =============================================================================
 
 services:
-  claude-code:
-    container_name: ${CONTAINER_NAME:-claude-code-dev}
-    image: ${IMAGE_NAME:-claude-code}:${IMAGE_TAG:-latest}
+  claude-devcontainer:
+    container_name: ${CONTAINER_NAME:-claude-dev}
+    image: ${IMAGE_NAME:-claude-devcontainer}:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
