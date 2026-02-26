@@ -28,8 +28,15 @@ git clone https://github.com/mememade-github/claude-devcontainer.git my-project
 ### 3. Claude Code 실행
 
 ```bash
-claude
+# 새 세션 시작 (권한 프롬프트 없이 자동 승인)
+claude --dangerously-skip-permissions
+
+# 이전 세션 이어서 작업
+claude --dangerously-skip-permissions --continue
 ```
+
+> `--dangerously-skip-permissions`: 파일 수정, 명령 실행 등 모든 도구를 승인 없이 허용합니다.
+> `--continue`: 마지막 대화 컨텍스트를 이어받아 계속합니다.
 
 ### 4. 프로젝트 초기 설정
 
