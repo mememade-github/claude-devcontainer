@@ -193,6 +193,29 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# --- Test 15: Standards reminder (.claude/ file) ---
+echo -n "15. Standards reminder (.claude/ file): "
+RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/.claude/hooks/example.sh"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/standards-reminder.sh" 2>&1)
+if echo "$RESULT" | grep -q "hooks-and-lifecycle"; then
+  echo "PASS (standard mapped: hooks-and-lifecycle)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL (result=$RESULT)"
+  FAIL=$((FAIL + 1))
+fi
+
+# --- Test 16: Standards reminder (non-.claude file) ---
+echo -n "16. Standards reminder (non-.claude file): "
+RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/src/main.py"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/standards-reminder.sh" 2>&1)
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ] && [ -z "$RESULT" ]; then
+  echo "PASS (ignored)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL"
+  FAIL=$((FAIL + 1))
+fi
+
 # --- Cleanup ---
 rm -f "$PROJECT_DIR/.claude/.pending-review"
 rm -f "$PROJECT_DIR/.claude/.error-log"
