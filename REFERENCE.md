@@ -85,7 +85,7 @@ postStartCommand (매 시작 시)
 
 ## Agent System
 
-### Agents (14)
+### Agents (13)
 
 | Agent | Purpose | Auto-trigger |
 |-------|---------|-------------|
@@ -99,25 +99,21 @@ postStartCommand (매 시작 시)
 | refactor-cleaner | Dead code cleanup | On maintenance |
 | architect | Architecture design review | On design decisions |
 | planner | Implementation planning | On complex tasks |
-| agent-evolver | Session → agent evolution | Before session end |
 | debugger | Root cause analysis | On errors |
 | environment-checker | Workspace health | On env issues |
 | wip-manager | Multi-session tracking | When task spans sessions |
 
-### Hooks (13)
+### Hooks (10)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
 | session-start.sh | SessionStart | Git status, WIP resume, Known Issues |
 | block-destructive.sh | PreToolUse(Bash) | Block rm -rf, git push --force |
 | pre-commit-gate.sh | PreToolUse(Bash) | Require verification before commit |
-| observe.sh | Pre/PostToolUse | Record tool usage for learning |
 | code-review-reminder.sh | PostToolUse(Edit/Write) | Track modified files |
 | suggest-compact.sh | PostToolUse(Edit/Write) | Suggest context compaction |
 | stop-gate.sh | Stop | Block stop if review pending |
-| evolution-gate.sh | Stop | Trigger agent evolution |
 | mark-verified.sh | Utility | Set verification marker |
-| mark-evolved.sh | Utility | Set evolution marker |
 | review-complete.sh | Utility | Clear review marker |
 | claude-update-check.sh | Utility | Check for Claude updates |
 | test-hooks.sh | Testing | Validate hooks |
@@ -133,11 +129,6 @@ postStartCommand (매 시작 시)
 | /deploy | Deploy to production |
 | /status | Workspace status |
 | /eval | Eval-Driven Development |
-| /evolve | Instincts → skills/agents |
-| /learn | Extract patterns |
-| /instinct-status | Instinct confidence scores |
-| /instinct-export | Export instincts |
-| /instinct-import | Import instincts |
 
 ## Troubleshooting
 

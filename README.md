@@ -1,6 +1,6 @@
 # Claude Code DevContainer
 
-Claude Code + 14 Agent System이 포함된 격리 개발 환경 템플릿.
+Claude Code + 13 Agent System이 포함된 격리 개발 환경 템플릿.
 
 **필요 조건**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
@@ -89,9 +89,9 @@ CLI 대신 VS Code Dev Containers를 사용할 수 있습니다.
 
 | 구성 | 수량 | 내용 |
 |------|------|------|
-| Agents | 14 | code-reviewer, security-reviewer, debugger, planner, architect 등 |
-| Hooks | 13 | 세션 시작, 파괴적 명령 차단, 코드리뷰 자동 트리거, 커밋 전 검증 등 |
-| Skills | 12 | /commit, /pr, /verify, /status, /deploy, /learn 등 |
+| Agents | 13 | code-reviewer, security-reviewer, debugger, planner, architect 등 |
+| Hooks | 10 | 세션 시작, 파괴적 명령 차단, 코드리뷰 자동 트리거, 커밋 전 검증 등 |
+| Skills | 7 | /commit, /pr, /verify, /status, /deploy, /build-fix, /eval |
 | MCP | 2 | Context7 (문서 검색), Serena (코드 인텔리전스) |
 | Tools | 20+ | ripgrep, fd, fzf, jq, tmux, docker CLI, gh 등 |
 

@@ -30,15 +30,6 @@
             "timeout": 5
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/observe.sh pre",
-            "timeout": 2
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -56,15 +47,6 @@
             "timeout": 2
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/observe.sh post",
-            "timeout": 2
-          }
-        ]
       }
     ],
     "Stop": [
@@ -73,11 +55,6 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-gate.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/evolution-gate.sh",
             "timeout": 5
           }
         ]

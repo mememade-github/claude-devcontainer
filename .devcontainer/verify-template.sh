@@ -40,7 +40,7 @@ grep -q '"Stop"' /workspaces/.claude/settings.json 2>/dev/null && record PASS "S
 
 # --- PHASE 3: Hooks ---
 echo ""
-echo "=== Phase 3A: Hook Syntax (13개) ==="
+echo "=== Phase 3A: Hook Syntax (10개) ==="
 for f in /workspaces/.claude/hooks/*.sh; do
     bash -n "$f" 2>/dev/null && record PASS "$(basename $f)" || record FAIL "$(basename $f)"
 done
@@ -60,13 +60,13 @@ for f in /workspaces/.claude/agents/*.md; do
     [[ "$name" == _* ]] && continue
     head -1 "$f" 2>/dev/null | grep -q "^---" && count=$((count+1)) || record FAIL "frontmatter: $name"
 done
-record PASS "Agent frontmatter ($count/14)"
+record PASS "Agent frontmatter ($count/13)"
 
 # --- PHASE 2c: Skills ---
 echo ""
 echo "=== Phase 2c: Skills ==="
 skills=$(ls /workspaces/.claude/skills/*/SKILL.md 2>/dev/null | wc -l)
-[ "$skills" -eq 12 ] && record PASS "Skills: $skills/12" || record FAIL "Skills: $skills (expected 12)"
+[ "$skills" -eq 7 ] && record PASS "Skills: $skills/7" || record FAIL "Skills: $skills (expected 7)"
 
 # --- PHASE 2d: Rules ---
 echo ""
