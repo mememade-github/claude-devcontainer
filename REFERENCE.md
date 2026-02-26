@@ -103,7 +103,7 @@ postStartCommand (매 시작 시)
 | environment-checker | Workspace health | On env issues |
 | wip-manager | Multi-session tracking | When task spans sessions |
 
-### Hooks (10)
+### Hooks (11)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
@@ -116,6 +116,7 @@ postStartCommand (매 시작 시)
 | mark-verified.sh | Utility | Set verification marker |
 | review-complete.sh | Utility | Clear review marker |
 | claude-update-check.sh | Utility | Check for Claude updates |
+| error-tracker.sh | PostToolUseFailure | Track errors, enforce root cause fix |
 | test-hooks.sh | Testing | Validate hooks |
 
 ### Skills (/commands)

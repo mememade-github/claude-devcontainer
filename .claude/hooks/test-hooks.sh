@@ -5,7 +5,9 @@
 set -e
 PASS=0
 FAIL=0
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
+export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
 echo "=== Hook Test Suite ==="
 echo ""
@@ -167,8 +169,33 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# --- Test 13: Error tracker (tool failure) ---
+echo -n "13. Error tracker (tool failure): "
+rm -f "$PROJECT_DIR/.claude/.error-log"
+RESULT=$(echo '{"tool_name":"Bash","tool_input":{"command":"failing-cmd"},"error":"Command not found"}' | bash "$PROJECT_DIR/.claude/hooks/error-tracker.sh" 2>&1)
+if echo "$RESULT" | grep -q "additionalContext" && [ -f "$PROJECT_DIR/.claude/.error-log" ]; then
+  echo "PASS (error logged + context injected)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL (result=$RESULT, log exists=$([ -f $PROJECT_DIR/.claude/.error-log ] && echo yes || echo no))"
+  FAIL=$((FAIL + 1))
+fi
+
+# --- Test 14: Error tracker (empty error) ---
+echo -n "14. Error tracker (empty error): "
+rm -f "$PROJECT_DIR/.claude/.error-log"
+RESULT=$(echo '{"tool_name":"Read","tool_input":{"file_path":"/nonexistent"}}' | bash "$PROJECT_DIR/.claude/hooks/error-tracker.sh" 2>&1)
+if echo "$RESULT" | grep -q "additionalContext" && [ -f "$PROJECT_DIR/.claude/.error-log" ]; then
+  echo "PASS (handles missing error field)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL"
+  FAIL=$((FAIL + 1))
+fi
+
 # --- Cleanup ---
 rm -f "$PROJECT_DIR/.claude/.pending-review"
+rm -f "$PROJECT_DIR/.claude/.error-log"
 touch "$PROJECT_DIR/.claude/.last-verification"
 
 echo ""
