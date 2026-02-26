@@ -31,7 +31,7 @@
 
 ## Template Hierarchy
 
-이 저장소는 **Tier 1 베이스 템플릿**입니다. 모든 Claude Code DevContainer 프로젝트가 이 템플릿에서 파생됩니다.
+이 저장소는 **Tier 1 베이스 템플릿**입니다. 모든 Claude DevContainer 프로젝트가 이 템플릿에서 파생됩니다.
 
 | Tier | 역할 | 포함 |
 |------|------|------|

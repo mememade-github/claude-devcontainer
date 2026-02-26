@@ -1,4 +1,4 @@
-# Claude Code DevContainer
+# Claude DevContainer
 
 Claude Code + 13 Agent System이 포함된 격리 개발 환경 템플릿.
 
@@ -11,7 +11,7 @@ Claude Code + 13 Agent System이 포함된 격리 개발 환경 템플릿.
 ### Step 1: 클론 & 빌드
 
 ```bash
-git clone https://github.com/mememade-github/claude-code-devcontainer.git my-project
+git clone https://github.com/mememade-github/claude-devcontainer.git my-project
 cd my-project/.devcontainer
 docker compose up -d --build    # 첫 빌드 ~3-5분
 ```
@@ -19,7 +19,7 @@ docker compose up -d --build    # 첫 빌드 ~3-5분
 ### Step 2: 컨테이너 진입
 
 ```bash
-docker exec -it claude-code-dev bash
+docker exec -it claude-dev bash
 ```
 
 ### Step 3: Claude Code 실행
