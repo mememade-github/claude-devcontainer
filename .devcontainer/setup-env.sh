@@ -31,6 +31,9 @@ find "$WS" -maxdepth 3 -name ".git" -type d 2>/dev/null | while read gitdir; do
     git -C "$repo" config core.filemode false 2>/dev/null || true
 done
 
+# 9p/drvfs: root:root 소유 마운트에서 dubious ownership 방지
+git config --global safe.directory '*' 2>/dev/null || true
+
 # 명령 히스토리
 if [ -d /commandhistory ]; then
     export HISTFILE=/commandhistory/.bash_history
