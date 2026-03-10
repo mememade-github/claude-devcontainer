@@ -16,20 +16,20 @@
 | `TZ` | `UTC` | docker-compose.yml | 타임존 (.env에서 오버라이드) |
 | `CLAUDE_NODE_VERSION` | `20` | Dockerfile ARG | Claude Code Node.js |
 | `PROJECT_NODE_VERSION` | *(empty)* | Dockerfile ARG | 프로젝트 Node.js |
-| `PORT_APP` | `3000` | docker-compose.yml ports | 앱 포트 |
-| `PORT_API` | `8080` | docker-compose.yml ports | API 포트 |
-| `PORT_DB` | `5432` | docker-compose.yml ports | DB 포트 |
-| `PORT_EXTRA` | `6379` | docker-compose.yml ports | 추가 포트 |
+| `PORT_APP` | `31000` | docker-compose.yml ports | 앱 포트 |
+| `PORT_API` | `31080` | docker-compose.yml ports | API 포트 |
+| `PORT_DB` | `31432` | docker-compose.yml ports | DB 포트 |
+| `PORT_EXTRA` | `31379` | docker-compose.yml ports | 추가 포트 |
 | `HOST_WORKSPACE_PATH` | *(empty)* | docker-compose.yml volumes | 워크스페이스 경로 |
 
 ## Ports
 
 | 변수 | 기본값 | devcontainer.json | 용도 |
 |------|--------|------------------|------|
-| `PORT_APP` | 3000 | forwardPorts[0] | 앱, dev server |
-| `PORT_API` | 8080 | forwardPorts[1] | API 서버 |
-| `PORT_DB` | 5432 | forwardPorts[2] | 데이터베이스 |
-| `PORT_EXTRA` | 6379 | forwardPorts[3] | Redis, queue 등 |
+| `PORT_APP` | 31000 | forwardPorts[0] | 앱, dev server |
+| `PORT_API` | 31080 | forwardPorts[1] | API 서버 |
+| `PORT_DB` | 31432 | forwardPorts[2] | 데이터베이스 |
+| `PORT_EXTRA` | 31379 | forwardPorts[3] | Redis, queue 등 |
 
 **주의**: `.env` 포트 변경 시 `devcontainer.json`의 `forwardPorts`도 함께 수정해야 합니다.
 
