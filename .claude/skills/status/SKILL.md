@@ -10,7 +10,7 @@ Show the current workspace status by running these steps:
 ## 1. Git Repos
 Find all git repositories in the workspace:
 ```bash
-find "$CLAUDE_PROJECT_DIR" -name ".git" -type d -maxdepth 4 | while read gitdir; do
+find "$CLAUDE_PROJECT_DIR" -name ".git" -type d -maxdepth 6 | while read gitdir; do
   REPO=$(dirname "$gitdir")
   echo "$REPO: $(git -C "$REPO" branch --show-current) | dirty=$(git -C "$REPO" status --porcelain | wc -l)"
 done
