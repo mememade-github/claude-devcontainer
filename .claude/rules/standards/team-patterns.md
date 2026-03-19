@@ -55,13 +55,8 @@ TeamDelete (cleanup — MANDATORY)
 
 ### Model Selection for Teammates
 
-| Model | Use For | Note |
-|-------|---------|------|
-| opus | Complex reasoning, architecture, security | Highest capability |
-| sonnet | Standard tasks, code review, testing | Balanced cost/performance |
-| haiku | Simple checks, formatting, env verification | Fast and economical |
-
-> **Note**: Projects may override model selection via `.claude/rules/project/agent-overrides.md`.
+See `.claude/rules/standards/agent-definition.md` § Model Selection Guide.
+Projects may override via `.claude/rules/project/agent-overrides.md`.
 
 ### Subagent Type Mapping
 

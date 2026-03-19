@@ -6,23 +6,40 @@
 #   - If no verification marker → no work done → allow stop
 #   - If verification exists but evolution is newer → already evolved → allow stop
 #   - If verification exists and no evolution (or stale) → block + suggest
-#   - Respects stop_hook_active to prevent infinite loops
+#   - File-based loop prevention: if already blocked once, allow stop
 #
 # Marker files:
 #   .claude/.last-verification — set by mark-verified.sh after pre-commit checks
 #   .claude/.last-evolution    — set by mark-evolved.sh after agent-evolver runs
 
 INPUT=$(cat)
-STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
 
-# Prevent infinite loop: if we already blocked once, allow stop
-if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
-  exit 0
+# Resolve actual project root (worktree -> original repo root)
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+if command -v git &>/dev/null; then
+  GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
+  if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
+    ACTUAL_ROOT=$(dirname "$GIT_COMMON")
+  else
+    ACTUAL_ROOT="$PROJECT_DIR"
+  fi
+else
+  ACTUAL_ROOT="$PROJECT_DIR"
 fi
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-VERIFY_MARKER="$PROJECT_DIR/.claude/.last-verification"
-EVOLVE_MARKER="$PROJECT_DIR/.claude/.last-evolution"
+# File-based loop prevention: if we already blocked once recently, allow stop
+BLOCK_MARKER="$ACTUAL_ROOT/.claude/.stop-blocked-evolution"
+if [ -f "$BLOCK_MARKER" ]; then
+  MARKER_AGE=$(( $(date +%s) - $(stat -c %Y "$BLOCK_MARKER" 2>/dev/null || echo 0) ))
+  if [ "$MARKER_AGE" -lt 120 ]; then
+    rm -f "$BLOCK_MARKER"
+    exit 0
+  fi
+  rm -f "$BLOCK_MARKER"
+fi
+
+VERIFY_MARKER="$ACTUAL_ROOT/.claude/.last-verification"
+EVOLVE_MARKER="$ACTUAL_ROOT/.claude/.last-evolution"
 
 # No verification → no meaningful work → skip
 if [ ! -f "$VERIFY_MARKER" ]; then
@@ -41,6 +58,7 @@ if [ -f "$EVOLVE_MARKER" ]; then
 fi
 
 # Verification exists but evolution not done → block with suggestion
+touch "$BLOCK_MARKER"
 jq -n '{
   decision: "block",
   reason: "Meaningful work completed but evolution not performed.\nDelegate to agent-evolver (team: quality) or run .claude/hooks/mark-evolved.sh to skip."

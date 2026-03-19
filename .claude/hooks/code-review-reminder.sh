@@ -16,13 +16,25 @@ fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 
-# Only track changes in products/ directory (relative to project root)
-RELATIVE_PATH=$(echo "$FILE_PATH" | sed "s|^$PROJECT_DIR/||")
+# Resolve actual project root (worktree -> original repo root)
+if command -v git &>/dev/null; then
+  GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
+  if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
+    ACTUAL_ROOT=$(dirname "$GIT_COMMON")
+  else
+    ACTUAL_ROOT="$PROJECT_DIR"
+  fi
+else
+  ACTUAL_ROOT="$PROJECT_DIR"
+fi
+
+# Only track changes in products/ directory (relative to actual project root)
+RELATIVE_PATH=$(echo "$FILE_PATH" | sed "s|^$PROJECT_DIR/||" | sed "s|^$ACTUAL_ROOT/||")
 if ! echo "$RELATIVE_PATH" | grep -q '^products/'; then
   exit 0
 fi
 
-MARKER="$PROJECT_DIR/.claude/.pending-review"
+MARKER="$ACTUAL_ROOT/.claude/.pending-review"
 if [ -f "$MARKER" ]; then
   if ! grep -qF "$RELATIVE_PATH" "$MARKER"; then
     echo "$RELATIVE_PATH" >> "$MARKER"
