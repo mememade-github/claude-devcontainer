@@ -4,22 +4,16 @@
 
 ## Core Principle
 
-DevContainers run on the **HOST** machine via VS Code. They cannot be started from inside another container.
-- DinD fails because mount paths reference HOST filesystem, not nested container paths
-- `docker.sock` sharing does not translate container-internal paths
+DevContainers run on the **HOST** Docker daemon. From inside a container, the host daemon is
+accessible via mounted `docker.sock` — this is NOT DinD.
 
-## External Docker Testing (docker.sock)
+**Prerequisites**: `docker.sock` mounted + user in `docker` group + `devcontainer` CLI installed
 
-From inside a DevContainer, the **host Docker daemon** is accessible via mounted socket.
-This is NOT DinD — commands execute on the host daemon directly.
-
-**Prerequisites**: `docker.sock` mounted + user in `docker` group
-
-| Allowed | Not Possible |
-|---------|-------------|
-| `docker compose build` | Open another DevContainer |
-| `docker images`, `docker inspect` | Test volume mounts (HOST paths) |
-| `docker rmi` (caution: host images) | Run postCreateCommand |
+| Allowed (via docker.sock) | Not Possible |
+|--------------------------|-------------|
+| `docker compose build` | Volume mounts with HOST paths |
+| `devcontainer up/exec` | VS Code extension testing |
+| `docker images`, `docker inspect` | GUI-dependent features |
 
 ## 4-Phase Testing Protocol
 
@@ -50,7 +44,28 @@ bash .claude/hooks/test-hooks.sh
 for f in .claude/hooks/*.sh; do bash -n "$f" && echo "OK: $f" || echo "FAIL: $f"; done
 ```
 
-### Phase 4: HOST Integration (user-only, cannot be automated)
+### Phase 4: HOST Integration
+
+**Option A: CLI Automated** (preferred — `devcontainer` CLI + docker.sock)
+
+```bash
+cd /path/to/project
+# 1. Build and start container on HOST Docker
+devcontainer up --workspace-folder .
+
+# 2. Verify Claude + MCP inside the container
+devcontainer exec --workspace-folder . claude --version
+devcontainer exec --workspace-folder . claude mcp list
+
+# 3. Verify system tools
+devcontainer exec --workspace-folder . node --version
+devcontainer exec --workspace-folder . npx --version
+
+# 4. Cleanup
+docker compose -p <compose-project-name> down
+```
+
+**Option B: Manual** (VS Code GUI — for extension/UI testing)
 
 1. "Reopen in Container" from HOST VS Code
 2. Verify `/workspaces/` mount, postCreateCommand, extensions
@@ -62,10 +77,11 @@ for f in .claude/hooks/*.sh; do bash -n "$f" && echo "OK: $f" || echo "FAIL: $f"
 |---------|-------------|
 | Empty `/workspaces/` | Mount path missing in nested container |
 | "Cannot find workspace" | Path resolution failure |
-| Missing VS Code extensions | VS Code not connected |
+| Missing VS Code extensions | VS Code not connected (Option B only) |
 
 ## Agent Guidance
 
 1. Run Phase 1-3 first, report PASS/FAIL per item
-2. Delegate Phase 4 to user with handoff template:
-   > "Phase 1-3 complete. From HOST VS Code: Reopen in Container, verify `claude --version` and `/mcp`."
+2. Run Phase 4 Option A (CLI) for automated verification
+3. Fall back to Option B (manual handoff) only for VS Code extension testing:
+   > "Phase 1-4A complete. VS Code extensions require manual verification: Reopen in Container from HOST."

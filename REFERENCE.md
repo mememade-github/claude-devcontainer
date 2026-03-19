@@ -76,10 +76,11 @@ postStartCommand (매 시작 시)
 | **Shell** | tmux, zsh, fzf, jq, tree, htop |
 | **Search** | ripgrep (rg), fd-find (fd) |
 | **Git** | git, git-lfs, gh (GitHub CLI) |
-| **Container** | docker CLI, docker compose v2 |
+| **Container** | docker CLI, docker compose v2, devcontainer CLI |
 | **Editor** | vim, nano |
 | **Network** | curl, wget, openssh-client |
 | **Claude** | Claude Code CLI, Context7 MCP, Serena MCP |
+| **Node.js** | node 22 LTS, npm, npx (Context7 MCP 인프라용) |
 | **Python** | python3, uv, jedi (Serena 인프라용) |
 
 ## Agent System
