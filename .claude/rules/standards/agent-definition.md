@@ -13,7 +13,7 @@
 ---
 name: agent-name          # kebab-case, must match filename
 description: >-           # One-line purpose statement
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]  # Full access (YAML array)
+tools: Read, Write, Edit, Bash, Grep, Glob  # Comma-separated (official format)
 ---
 ```
 
@@ -25,7 +25,7 @@ Removal causes regression (ref: c752d12 incident). **Do NOT strip during complia
 ```yaml
 model: opus               # Select per complexity — see Model Selection Guide below
 maxTurns: 15              # Safety/cost gate — MUST be set for all agents
-memory: project           # Enables .claude/agent-memory/<name>/MEMORY.md injection
+memory: project           # Scope: user | project | local. Enables agent-memory/<name>/MEMORY.md
 ```
 
 > **Note**: `maxTurns`, `memory`, `skills` are officially supported fields
@@ -60,20 +60,21 @@ tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 
 ### Model Selection Guide
 
-| Model | Use For | Note |
-|-------|---------|------|
-| opus | Complex reasoning, architecture, security | Highest capability |
-| sonnet | Standard tasks, code review, testing | Balanced cost/performance |
-| haiku | Simple checks, formatting, env verification | Fast and economical |
+Default model selection per complexity. **Check project overrides first** — many projects standardize on a single model tier via `.claude/rules/project/agent-overrides.md`.
 
-> **Note**: Projects may override model selection via `.claude/rules/project/agent-overrides.md`.
+| Model | Use For |
+|-------|---------|
+| opus | Complex reasoning, architecture, security |
+| sonnet | Standard tasks, code review, testing |
+| haiku | Simple checks, formatting, env verification |
 
 ### Body Content
 
 - Start with role description ("You are a...")
 - Include review checklist or step-by-step process
 - Define output format
-- Keep under 200 lines (system prompt budget)
+- Design focused subagents: each should excel at one specific task
+- No official size limit — body is injected as system prompt within context window
 
 ## Compliance Checks
 
