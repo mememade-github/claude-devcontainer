@@ -7,32 +7,63 @@ allowed-tools: Bash, Read, Glob, Grep
 
 Show the current workspace status by running these steps:
 
-## 1. Git Repos
-Find all git repositories in the workspace:
+## 0. Workspace Root Resolution
+Resolve the actual workspace root (handles both direct and worktree execution):
 ```bash
-find "$CLAUDE_PROJECT_DIR" -name ".git" -type d -maxdepth 6 | while read gitdir; do
-  REPO=$(dirname "$gitdir")
-  echo "$REPO: $(git -C "$REPO" branch --show-current) | dirty=$(git -C "$REPO" status --porcelain | wc -l)"
-done
+WORKSPACE_ROOT=$(git rev-parse --git-common-dir 2>/dev/null | xargs dirname)
+if [ -z "$WORKSPACE_ROOT" ] || [ "$WORKSPACE_ROOT" = "." ]; then
+  WORKSPACE_ROOT="${CLAUDE_PROJECT_DIR:-.}"
+fi
+echo "Workspace root: $WORKSPACE_ROOT"
 ```
+Use `$WORKSPACE_ROOT` for ALL subsequent paths.
+
+## 1. Git Repos
+Delegate to the canonical git-status script (single source of truth for repo enumeration):
+```bash
+"$WORKSPACE_ROOT/scripts/git/git-status.sh" --brief
+```
+This covers root, products/root/*, products/derived/*, and nested repos within derived projects.
 
 ## 2. Unpushed Commits
 For each repo with a remote, check:
 ```bash
-git -C <repo> log --oneline @{u}..HEAD 2>/dev/null
+find "$WORKSPACE_ROOT/products" -name ".git" -type d -maxdepth 5 2>/dev/null | while read gitdir; do
+  REPO=$(dirname "$gitdir")
+  UNPUSHED=$(git -C "$REPO" log --oneline @{u}..HEAD 2>/dev/null)
+  if [ -n "$UNPUSHED" ]; then
+    echo "=== $REPO ==="
+    echo "$UNPUSHED"
+  fi
+done
 ```
 Flag any repo with unpushed commits.
 
-## 3. WIP Tasks
-Check for active WIP tasks: `ls $CLAUDE_PROJECT_DIR/wip/ 2>/dev/null`
+## 3. Active Workers
+Show active workers in the current project:
+```bash
+PROJECT_KEY=$(echo "$WORKSPACE_ROOT" | md5sum | cut -c1-12)
+WORKER_DIR="$HOME/.claude/workers/${PROJECT_KEY}"
+if [ -d "$WORKER_DIR" ]; then
+  for f in "$WORKER_DIR"/worker-*.json; do
+    [ -f "$f" ] || continue
+    jq -r '"  \(.name) (\(.branch)): \(.working_on // "idle") [since \(.started)]"' "$f" 2>/dev/null
+  done
+else
+  echo "  (no active workers registered)"
+fi
+```
+
+## 4. WIP Tasks
+Check for active WIP tasks: `ls "$WORKSPACE_ROOT/wip/" 2>/dev/null`
 If WIP directories exist, read each README.md to show current task status.
 
-## 4. Active Plans
+## 5. Active Plans
 Check `~/.claude/plans/` for plan files. Show name and age of each.
 
-## 5. Stale Markers
-- `.claude/.pending-review` — show file list if exists
-- `.claude/.last-verification` — show age
+## 6. Stale Markers
+- `$WORKSPACE_ROOT/.claude/.pending-review` — show file list if exists
+- `$WORKSPACE_ROOT/.claude/.last-verification` — show age
 
-## 6. Summary
+## 7. Summary
 Summarize findings concisely: repos status, unpushed count, WIP count, stale items.
