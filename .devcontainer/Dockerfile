@@ -44,6 +44,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
     docker.io \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    # Node.js LTS — Context7 MCP 인프라용 (시스템 패키지, Claude 네이티브에서 직접 접근)
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g @devcontainers/cli \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && (groupmod -g ${DOCKER_GID} docker 2>/dev/null || groupadd -g ${DOCKER_GID} docker 2>/dev/null || true) \
     && usermod -aG docker ${USERNAME} \
     # Docker Compose v2 plugin
@@ -82,25 +87,14 @@ RUN mkdir /tmp/claude-install && cd /tmp/claude-install \
     && claude --version
 
 # =============================================================================
-# Layer 3b: Node.js — MCP Infrastructure (Context7)
-# Python이 Serena 인프라이듯, Node.js는 Context7 MCP 인프라.
-# Claude Code 자체는 Node.js 불필요하지만 Context7은 npx 필요.
-# =============================================================================
-ARG MCP_NODE_VERSION=22
-
-RUN mkdir -p ${NVM_DIR} \
-    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash \
-    && . ${NVM_DIR}/nvm.sh \
-    && nvm install ${MCP_NODE_VERSION} \
-    && nvm alias default ${MCP_NODE_VERSION}
-
-# =============================================================================
 # Layer 4: Node.js — Project (optional)
-# PROJECT_NODE_VERSION 설정 시 추가 버전 설치 + default 전환.
-# 미설정 시 MCP 인프라용 Node.js(LTS)만 사용.
+# 시스템 Node.js(Layer 1)와 별도로, 프로젝트 전용 버전이 필요할 때만 nvm 설치.
+# 미설정 시 시스템 Node.js(LTS)만 사용.
 # =============================================================================
 RUN if [ -n "${PROJECT_NODE_VERSION}" ]; then \
-        . ${NVM_DIR}/nvm.sh \
+        mkdir -p ${NVM_DIR} \
+        && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash \
+        && . ${NVM_DIR}/nvm.sh \
         && nvm install ${PROJECT_NODE_VERSION} \
         && nvm alias project-node ${PROJECT_NODE_VERSION} \
         && nvm alias default ${PROJECT_NODE_VERSION}; \
@@ -108,7 +102,7 @@ RUN if [ -n "${PROJECT_NODE_VERSION}" ]; then \
 
 # =============================================================================
 # Layer 5: Serena MCP — 코드 인텔리전스
-# Node.js가 Claude CLI용이듯, Python은 Serena MCP용 인프라.
+# Node.js(시스템)가 Context7 MCP 인프라이듯, Python은 Serena MCP용 인프라.
 # =============================================================================
 # uv (Python 패키지 관리)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
