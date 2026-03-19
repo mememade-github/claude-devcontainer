@@ -24,7 +24,20 @@ fi
 # Allow --amend with --no-edit (minor fixups)
 # Block all other commits without verification
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-MARKER="$PROJECT_DIR/.claude/.last-verification"
+
+# Resolve actual project root (worktree → original repo root)
+if command -v git &>/dev/null; then
+  GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
+  if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
+    ACTUAL_ROOT=$(dirname "$GIT_COMMON")
+  else
+    ACTUAL_ROOT="$PROJECT_DIR"
+  fi
+else
+  ACTUAL_ROOT="$PROJECT_DIR"
+fi
+
+MARKER="$ACTUAL_ROOT/.claude/.last-verification"
 MAX_AGE=600  # 10 minutes
 
 if [ ! -f "$MARKER" ]; then
