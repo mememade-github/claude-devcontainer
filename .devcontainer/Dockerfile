@@ -77,6 +77,7 @@ ENV HOME=/home/${USERNAME} \
 RUN mkdir /tmp/claude-install && cd /tmp/claude-install \
     && curl -fsSL https://claude.ai/install.sh | bash \
     && rm -rf /tmp/claude-install \
+    && cd ~ \
     && claude --version
 
 # =============================================================================
