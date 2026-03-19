@@ -21,8 +21,9 @@ TOOL=$(echo "$INPUT" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\
 [ -z "$TOOL" ] && TOOL="unknown"
 
 # Extract input_summary: first 200 chars of tool_input value (truncate for speed)
-# JSON-escape: replace backslash, double-quote, newline, tab with safe chars
-INPUT_SUMMARY=$(echo "$INPUT" | sed -n 's/.*"tool_input"[[:space:]]*:[[:space:]]*\(.\{1,200\}\).*/\1/p' | head -1 | tr -d '\000-\010\013\014\016-\037' | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/ /g' | tr '\n' ' ' | tr -d '\r')
+# JSON-escape: strip control chars, escape backslash FIRST, then double-quote
+# Use tr for backslash to avoid sed double-interpretation issues (W-4 fix)
+INPUT_SUMMARY=$(echo "$INPUT" | sed -n 's/.*"tool_input"[[:space:]]*:[[:space:]]*\(.\{1,200\}\).*/\1/p' | head -1 | tr -d '\000-\010\013\014\016-\037' | tr '\n\r\t' '   ' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
 [ -z "$INPUT_SUMMARY" ] && INPUT_SUMMARY=""
 
 # Detect success in post phase (check for error indicators in response)
