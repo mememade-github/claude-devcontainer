@@ -89,12 +89,12 @@ These files change frequently and cause merge conflicts:
 
 ### Low-Risk Files (safe to parallelize)
 
-| File | Why Safe |
-|------|----------|
-| `products/root/*` | Independent repos |
-| `products/derived/*` | Independent repos |
+| File Pattern | Why Safe |
+|--------------|----------|
+| Independent sub-repositories | Separate git history, no merge conflicts |
 | `.claude/agent-memory/` | Per-agent, no cross-reference |
 | `.claude/instincts/` | Append-only observations |
+| Test files not shared across modules | Isolated by design |
 
 ## Session-Start Integration
 

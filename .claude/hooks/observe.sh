@@ -3,7 +3,20 @@
 # Called by PreToolUse/PostToolUse hooks. MUST complete in < 2 seconds.
 # Part of continuous-learning-v2 (instinct-based learning system).
 
-DIR="${CLAUDE_PROJECT_DIR:-.}/.claude/instincts"
+# Resolve actual project root (worktree -> original repo root)
+_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+if command -v git &>/dev/null; then
+  _GIT_COMMON=$(git -C "$_PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
+  if [ -n "$_GIT_COMMON" ] && [ "$_GIT_COMMON" != ".git" ]; then
+    _ACTUAL_ROOT=$(dirname "$_GIT_COMMON")
+  else
+    _ACTUAL_ROOT="$_PROJECT_DIR"
+  fi
+else
+  _ACTUAL_ROOT="$_PROJECT_DIR"
+fi
+
+DIR="$_ACTUAL_ROOT/.claude/instincts"
 FILE="$DIR/observations.jsonl"
 
 # Ensure directory exists (fast no-op after first call)
@@ -13,8 +26,8 @@ PHASE="${1:-unknown}"
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Read tool info from stdin (Claude Code hook JSON)
-# Use timeout to prevent hanging, read only first 1000 chars for speed
-INPUT=$(head -c 1000 2>/dev/null || echo "{}")
+# Use 4096 bytes to avoid truncating JSON mid-field
+INPUT=$(head -c 4096 2>/dev/null || echo "{}")
 
 # Extract tool name with sed (no python/jq dependency for speed)
 TOOL=$(echo "$INPUT" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
@@ -37,10 +50,13 @@ if [ "$PHASE" = "post" ]; then
 fi
 
 # Append observation (atomic write) — 5 fields: ts, phase, tool, input_summary, success
+# Use %s for all fields to avoid printf interpreting % in user data
 if [ -n "$INPUT_SUMMARY" ]; then
-  printf '{"ts":"%s","phase":"%s","tool":"%s","input_summary":"%s"%s}\n' "$TS" "$PHASE" "$TOOL" "$INPUT_SUMMARY" "$SUCCESS" >> "$FILE" 2>/dev/null
+  LINE="{\"ts\":\"$TS\",\"phase\":\"$PHASE\",\"tool\":\"$TOOL\",\"input_summary\":\"$INPUT_SUMMARY\"$SUCCESS}"
+  printf '%s\n' "$LINE" >> "$FILE" 2>/dev/null
 else
-  printf '{"ts":"%s","phase":"%s","tool":"%s"%s}\n' "$TS" "$PHASE" "$TOOL" "$SUCCESS" >> "$FILE" 2>/dev/null
+  LINE="{\"ts\":\"$TS\",\"phase\":\"$PHASE\",\"tool\":\"$TOOL\"$SUCCESS}"
+  printf '%s\n' "$LINE" >> "$FILE" 2>/dev/null
 fi
 
 # Rotate at 10MB to prevent unbounded growth

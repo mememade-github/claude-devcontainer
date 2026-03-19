@@ -109,10 +109,10 @@ if [ -f "$WORKER_GUARD" ]; then
   fi
 fi
 
-# 7. Claude Code update check (use ACTUAL_ROOT for hook path)
-UPDATE_SCRIPT="$ACTUAL_ROOT/.claude/hooks/claude-update-check.sh"
-if [ -x "$UPDATE_SCRIPT" ]; then
-  UPDATE_INFO=$("$UPDATE_SCRIPT" 2>/dev/null)
+# 7. Claude Code update check (use PROJECT_DIR — hooks are code in current worktree)
+UPDATE_SCRIPT="$PROJECT_DIR/.claude/hooks/claude-update-check.sh"
+if [ -f "$UPDATE_SCRIPT" ]; then
+  UPDATE_INFO=$(bash "$UPDATE_SCRIPT" 2>/dev/null)
   if [ -n "$UPDATE_INFO" ]; then
     CONTEXT="${CONTEXT}${UPDATE_INFO}\n"
   fi

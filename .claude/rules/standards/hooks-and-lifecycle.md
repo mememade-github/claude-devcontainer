@@ -21,29 +21,31 @@ Claude Code supports four hook types:
 
 ### Hook Events (Official — 21 events)
 
-| Event | Timing | Input Fields (beyond common) | Use Case |
-|-------|--------|------------------------------|----------|
-| SessionStart | Session init | — | Env check, WIP resume |
-| UserPromptSubmit | After user sends prompt | user_message | Input validation, context injection |
-| PreToolUse | Before tool execution | tool_name, tool_input | Observation, tool blocking |
-| PermissionRequest | On permission prompt | tool_name, tool_input, permission_type | Auto-approve/deny patterns |
-| PostToolUse | After tool execution | tool_name, tool_input, tool_response | Observation, result analysis |
-| PostToolUseFailure | After tool failure | tool_name, tool_input, error | Error tracking |
-| Notification | On notification | title, message | Alert routing |
-| SubagentStart | Before subagent spawn | agent_name, agent_type | Team coordination |
-| SubagentStop | After subagent finish | agent_name, agent_type | Team cleanup |
-| Stop | Before session end | stop_reason | Evolution gate, cleanup |
-| TeammateIdle | Teammate goes idle | teammate_name | Team coordination |
-| TaskCompleted | Task marked complete | task_id | Progress tracking |
-| ConfigChange | Config file modified | config_path | Config validation |
-| WorktreeCreate | Worktree created | worktree_path, branch | Worktree setup |
-| WorktreeRemove | Worktree removed | worktree_path | Worktree cleanup |
-| PreCompact | Before context compaction | — | Save state before compaction |
-| PostCompact | After context compaction | — | State recovery after compaction |
-| InstructionsLoaded | When CLAUDE.md/rules loaded | instructions_content | Instruction validation |
-| Elicitation | MCP requests user input | elicitation_content | MCP input handling |
-| ElicitationResult | User responds to MCP elicitation | elicitation_result | MCP response processing |
-| SessionEnd | Session fully ended | — | Final cleanup, metrics |
+Status: **Verified** = registered in settings.json and tested, **Official** = documented in Claude Code but not registered here, **Unverified** = may not exist in current runtime
+
+| Event | Timing | Status | Use Case |
+|-------|--------|--------|----------|
+| SessionStart | Session init | Verified | Env check, WIP resume |
+| UserPromptSubmit | After user sends prompt | Official | Input validation, context injection |
+| PreToolUse | Before tool execution | Verified | Observation, tool blocking |
+| PermissionRequest | On permission prompt | Official | Auto-approve/deny patterns |
+| PostToolUse | After tool execution | Verified | Observation, result analysis |
+| PostToolUseFailure | After tool failure | Verified | Error tracking |
+| Notification | On notification | Official | Alert routing |
+| SubagentStart | Before subagent spawn | Verified | Team coordination |
+| SubagentStop | After subagent finish | Verified | Team cleanup |
+| Stop | Before session end | Verified | Evolution gate, cleanup |
+| TeammateIdle | Teammate goes idle | Official | Team coordination |
+| TaskCompleted | Task marked complete | Official | Progress tracking |
+| ConfigChange | Config file modified | Unverified | Config validation |
+| WorktreeCreate | Worktree created | Unverified | Worktree setup |
+| WorktreeRemove | Worktree removed | Unverified | Worktree cleanup |
+| PreCompact | Before context compaction | Unverified | Save state before compaction |
+| PostCompact | After context compaction | Unverified | State recovery after compaction |
+| InstructionsLoaded | When CLAUDE.md/rules loaded | Unverified | Instruction validation |
+| Elicitation | MCP requests user input | Unverified | MCP input handling |
+| ElicitationResult | User responds to MCP elicitation | Unverified | MCP response processing |
+| SessionEnd | Session fully ended | Unverified | Final cleanup, metrics |
 
 ### Hook JSON Protocol
 
@@ -71,19 +73,28 @@ Claude Code supports four hook types:
 > **Note**: Exit code 1 is a non-blocking error (logged), NOT a blocking signal.
 > Only exit code 2 blocks. Stderr (not stdout) is fed back to the agent on block.
 
-**Output** (command hooks can also return JSON on stdout):
+**Output** (exit 0 hooks can return JSON on stdout — PreToolUse only):
 ```json
 {
-  "hookSpecificOutput": "string shown in hook output",
-  "permissionDecision": "allow|deny|ask"
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow|deny|ask",
+    "permissionDecisionReason": "reason shown to Claude",
+    "additionalContext": "injected into context",
+    "updatedInput": { "field": "new value" }
+  }
 }
 ```
 
-**New features (2026-03)**:
+> **CRITICAL**: Choose ONE approach per hook, not both.
+> Exit 2 ignores all JSON — only stderr is read.
+> JSON `permissionDecision` requires exit 0. Bug [#4669](https://github.com/anthropics/claude-code/issues/4669)
+> reports `deny` being ignored in some versions. **Exit 2 + stderr is more reliable for blocking.**
 
-- **`async: true`**: Command hooks can set `async: true` to run in the background without blocking tool execution.
-- **`statusMessage`**: Custom spinner text displayed while a hook is running (e.g., `"statusMessage": "Running security scan..."`).
-- **`updatedInput`**: PreToolUse hooks can return `updatedInput` in JSON output to modify tool parameters before execution proceeds.
+**Additional JSON fields** (exit 0 only):
+
+- **`async: true`**: Run hook in background without blocking tool execution.
+- **`statusMessage`**: Custom spinner text while hook runs.
 
 ### Performance Requirements
 
