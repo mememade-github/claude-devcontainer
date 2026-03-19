@@ -91,6 +91,16 @@ Claude Code supports four hook types:
 - **Recommended**: Observation hooks should complete in < 2 seconds
   (self-imposed for latency, not an official limit)
 - **No network calls** in PreToolUse/PostToolUse (latency risk)
+
+### Worktree Compatibility
+
+- **`bash` prefix required**: All hook commands in settings.json MUST use `bash` prefix
+  (e.g., `bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/observe.sh`)
+- **Reason**: `core.filemode=false` environments (9p/drvfs mounts) do not preserve
+  execute permissions on git worktree checkout, causing Permission denied (exit 126)
+- **`ACTUAL_ROOT` pattern**: Hooks that reference project-level resources (.env/, instincts/,
+  agent-memory/) MUST resolve the actual project root via `git rev-parse --git-common-dir`
+  to work correctly in worktree contexts
 - **Atomic writes**: Use `printf >> file` not temp-file-rename for observations
 - **Minimal dependencies**: Prefer sed/awk over jq/python for speed
 
