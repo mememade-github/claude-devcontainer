@@ -57,7 +57,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Python LSP (Serena 의존성)
-RUN pip3 install --no-cache-dir --break-system-packages jedi
+# --break-system-packages: pip 23.0+ 필수, Ubuntu 22.04 기본 pip(22.x)에서는 미지원
+RUN pip3 install --no-cache-dir $(pip3 install --help 2>&1 | grep -q break-system-packages && echo "--break-system-packages") jedi
 
 # =============================================================================
 # Layer 2: 사용자 설정 (root → vscode)
