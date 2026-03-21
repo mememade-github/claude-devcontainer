@@ -126,7 +126,7 @@ Delegation via Task tool with `subagent_type` parameter.
 - **Node.js**: MCP 인프라용 Node 22 LTS 항상 설치. PROJECT_NODE_VERSION 설정 시 추가 버전 설치
 - **Persistent volumes**: `~/.claude` (인증 토큰), `/commandhistory` (히스토리)
 - **9p mount**: `core.filemode=false` (postStartCommand 자동 적용)
-- **MCP**: Context7 (documentation), Serena (code intelligence) — setup-env.sh 자동 설정
+- **MCP**: Context7 (documentation), Serena (code intelligence) — 플러그인 자동 관리
 
 ## Extended Reference
 

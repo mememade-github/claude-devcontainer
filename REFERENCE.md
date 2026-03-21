@@ -53,10 +53,9 @@ default (alias)      → project-node
 
 ```
 postCreateCommand (setup-env.sh — 최초 1회)
-  [1/4] 권한 설정 (Docker 소켓, git filemode, 명령 히스토리)
-  [2/4] SSH 설정 (호스트 키 바인드 시)
-  [3/4] MCP: Context7
-  [4/4] MCP: Serena
+  [1/3] 권한 설정 (Docker 소켓, git filemode, 명령 히스토리)
+  [2/3] SSH 설정 (호스트 키 바인드 시)
+  [3/3] MCP: 플러그인 자동 관리 (Context7, Serena, Playwright)
 
 postStartCommand (매 시작 시)
   git config core.filemode false
