@@ -19,12 +19,6 @@ printf '{"ts":"%s","event":"pre_compact","type":"%s"}\n' \
   "$TIMESTAMP" "$COMPACT_TYPE" \
   >> "$PROJECT_DIR/.claude/compaction.log" 2>/dev/null || true
 
-# inject context reminder via additionalContext
-cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreCompact",
-    "additionalContext": "Context compaction occurring. Key state: Check active tasks via TaskList, check WIP via wip/ directory, check pending reviews via .claude/.pending-review marker."
-  }
-}
-EOF
+# Note: PreCompact does not support hookSpecificOutput JSON.
+# Context preservation is handled by the compaction.log above.
+exit 0
