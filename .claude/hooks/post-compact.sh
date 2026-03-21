@@ -32,16 +32,6 @@ if [ -f "$PROJECT_DIR/.claude/.pending-review" ]; then
   REVIEW_NOTE="Pending code review exists. Delegate to code-reviewer before committing."
 fi
 
-# inject recovery context
-CONTEXT="Post-compaction context recovery."
-[ -n "$WIP_SUMMARY" ] && CONTEXT="$CONTEXT $WIP_SUMMARY"
-[ -n "$REVIEW_NOTE" ] && CONTEXT="$CONTEXT $REVIEW_NOTE"
-
-cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PostCompact",
-    "additionalContext": "$CONTEXT"
-  }
-}
-EOF
+# Note: PostCompact does not support hookSpecificOutput JSON.
+# Recovery context is logged above; WIP/review state is checked by session-start.sh.
+exit 0
