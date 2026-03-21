@@ -16,15 +16,21 @@ Rationale: consistency and maximum capability across all agent operations.
 
 ## Tool Access Policy
 
-All agents have full tool access:
+전 에이전트에 동일한 전체 도구를 명시적으로 주입 (예외 없음):
 
 ```yaml
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]
 ```
 
-- No `disallowedTools` — agents self-regulate based on role description
-- No `permissionMode` — default system behavior
-- Overrides the standard's role-based restriction recommendation
+## Effort Policy
+
+전 에이전트 `effort: high` (예외 없음):
+
+```yaml
+effort: high    # ALL agents — 최대 추론 품질
+```
+
+Rationale: 모든 도구를 활용하고 모든 능력을 고수준으로 작업하는 것이 지침.
 
 ## Team Structure
 
@@ -38,21 +44,21 @@ tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 
 ## Agent Inventory (14)
 
-All agents: `model: opus`, `memory: project`, full tool access, `maxTurns` 8-20.
+All agents: `model: opus`, `memory: project`, `maxTurns` 8-20.
 
-| Agent | maxTurns | Skills | Purpose |
-|-------|----------|--------|---------|
-| agent-evolver | 15 | verify, audit | Session analysis, agent/rule/skill evolution |
-| architect | 20 | — | Architecture patterns and design review |
-| build-error-resolver | 15 | — | Fix build/type errors with minimal diffs |
-| code-reviewer | 15 | — | Code review with severity framework |
-| database-reviewer | 15 | — | PostgreSQL optimization, schema design |
-| debugger | 15 | — | Root cause analysis for runtime errors |
-| doc-updater | 15 | — | Documentation and codemap specialist |
-| e2e-runner | 15 | — | E2E testing (curl, Playwright) |
-| environment-checker | 10 | — | Workspace health verification |
-| planner | 20 | — | Implementation planning specialist |
-| refactor-cleaner | 15 | — | Dead code cleanup and consolidation |
-| security-reviewer | 15 | — | Security vulnerability detection (OWASP) |
-| tdd-guide | 20 | — | TDD: RED→GREEN→REFACTOR cycle |
-| wip-manager | 8 | status | Multi-session task tracking |
+| Agent | maxTurns | effort | Tools | Skills | Color | MCP | Extra | Purpose |
+|-------|----------|--------|-------|--------|-------|-----|-------|---------|
+| agent-evolver | 15 | high | full | verify, audit | magenta | — | background | Session analysis, agent/rule/skill evolution |
+| architect | 20 | high | full | — | cyan | serena | — | Architecture patterns and design review |
+| build-error-resolver | 15 | high | full | verify | red | — | — | Fix build/type errors with minimal diffs |
+| code-reviewer | 15 | high | full | — | green | serena | hooks | Code review with severity framework |
+| database-reviewer | 15 | high | full | — | blue | serena | — | PostgreSQL optimization, schema design |
+| debugger | 15 | high | full | — | yellow | — | — | Root cause analysis for runtime errors |
+| doc-updater | 15 | high | full | — | cyan | context7 | — | Documentation and codemap specialist |
+| e2e-runner | 15 | high | full | verify | green | — | — | E2E testing (curl, Playwright) |
+| environment-checker | 10 | high | full | status | yellow | — | — | Workspace health verification |
+| planner | 20 | high | full | — | cyan | — | — | Implementation planning specialist |
+| refactor-cleaner | 15 | high | full | verify | magenta | — | isolation | Dead code cleanup and consolidation |
+| security-reviewer | 15 | high | full | — | red | serena | — | Security vulnerability detection (OWASP) |
+| tdd-guide | 20 | high | full | verify | green | — | — | TDD: RED→GREEN→REFACTOR cycle |
+| wip-manager | 8 | high | full | status | blue | — | — | Multi-session task tracking |
