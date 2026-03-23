@@ -204,6 +204,30 @@ When new ECC or other best practice versions are available:
 Run `"$CLAUDE_PROJECT_DIR"/.claude/hooks/mark-evolved.sh` to set the evolution marker.
 This prevents the evolution-gate from blocking Stop.
 
+## Evolution Thresholds & Confidence
+
+### Confidence Scoring
+
+| Observations | Confidence Level |
+|-------------|-----------------|
+| 1-2 | 0.3 (tentative) |
+| 3-5 | 0.5 (moderate) |
+| 6-10 | 0.7 (strong -- auto-approved) |
+| 11+ | 0.85 (very strong) |
+
+### Confidence Adjustments
+
+| Event | Adjustment |
+|-------|------------|
+| Confirming observation | +0.05 |
+| Contradicting observation | -0.10 |
+| Unobserved decay | -0.02/week |
+| Archive threshold | < 0.2 |
+
+### Evolution Threshold
+
+Evolution triggers when a domain has **3+ instincts** with **average confidence > 0.5**.
+
 ## Memory Management
 
 Consult your agent memory at the start of each invocation. After completing evolution analysis, update your memory (MEMORY.md) with:
