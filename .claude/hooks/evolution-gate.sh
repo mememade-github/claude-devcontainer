@@ -16,7 +16,9 @@ INPUT=$(cat)
 
 # Resolve actual project root (worktree -> original repo root)
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+# Intentional: graceful fallback when git is not installed (P-1)
 if command -v git &>/dev/null; then
+  # Worktree resolution: may not be in a git repo (P-2)
   GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
   if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
     ACTUAL_ROOT=$(dirname "$GIT_COMMON")
@@ -27,14 +29,20 @@ else
   ACTUAL_ROOT="$PROJECT_DIR"
 fi
 
-# resolve branch name for per-worktree marker isolation
+# Honest fallback: "unknown" signals uncertainty (P-3)
 BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 BRANCH_SAFE=$(echo "$BRANCH" | tr '/' '-')
 
 # File-based loop prevention: if we already blocked once recently, allow stop
 BLOCK_MARKER="$ACTUAL_ROOT/.claude/.stop-blocked-evolution.$BRANCH_SAFE"
 if [ -f "$BLOCK_MARKER" ]; then
-  MARKER_AGE=$(( $(date +%s) - $(stat -c %Y "$BLOCK_MARKER" 2>/dev/null || echo 0) ))
+  BLOCK_MTIME=$(stat -c %Y "$BLOCK_MARKER" 2>/dev/null) || {
+    # Cannot read block marker — safe to clear and continue
+    rm -f "$BLOCK_MARKER"
+    # fall through to main logic
+    BLOCK_MTIME=0
+  }
+  MARKER_AGE=$(( $(date +%s) - BLOCK_MTIME ))
   if [ "$MARKER_AGE" -lt 120 ]; then
     rm -f "$BLOCK_MARKER"
     exit 0
@@ -50,11 +58,23 @@ if [ ! -f "$VERIFY_MARKER" ]; then
   exit 0
 fi
 
-VERIFY_TIME=$(stat -c %Y "$VERIFY_MARKER" 2>/dev/null || echo 0)
+VERIFY_TIME=$(stat -c %Y "$VERIFY_MARKER" 2>/dev/null) || {
+  jq -n --arg m "$VERIFY_MARKER" '{
+    decision: "block",
+    reason: ("Cannot read verification marker: " + $m + ". Resolve before stopping.")
+  }'
+  exit 0
+}
 
 # Check if evolution was done after verification
 if [ -f "$EVOLVE_MARKER" ]; then
-  EVOLVE_TIME=$(stat -c %Y "$EVOLVE_MARKER" 2>/dev/null || echo 0)
+  EVOLVE_TIME=$(stat -c %Y "$EVOLVE_MARKER" 2>/dev/null) || {
+    jq -n --arg m "$EVOLVE_MARKER" '{
+      decision: "block",
+      reason: ("Cannot read evolution marker: " + $m + ". Resolve before stopping.")
+    }'
+    exit 0
+  }
   if [ "$EVOLVE_TIME" -gt "$VERIFY_TIME" ]; then
     # Evolution is current → allow stop
     exit 0
