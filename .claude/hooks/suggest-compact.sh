@@ -9,9 +9,16 @@ REMIND_INTERVAL=25
 
 # Increment counter
 COUNT=0
-[ -f "$COUNTER_FILE" ] && COUNT=$(cat "$COUNTER_FILE" 2>/dev/null || echo 0)
+if [ -f "$COUNTER_FILE" ]; then
+  if ! COUNT=$(cat "$COUNTER_FILE"); then
+    echo "WARN: counter read failed: $COUNTER_FILE" >&2
+    COUNT=0
+  fi
+fi
 COUNT=$((COUNT + 1))
-echo "$COUNT" > "$COUNTER_FILE" 2>/dev/null
+if ! echo "$COUNT" > "$COUNTER_FILE"; then
+  echo "WARN: counter write failed: $COUNTER_FILE" >&2
+fi
 
 # First threshold: suggest compaction
 if [ "$COUNT" -eq "$THRESHOLD" ]; then

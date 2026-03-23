@@ -28,6 +28,7 @@ These MUST NOT be modified by any automated process:
 4. **Read first**: Read existing code before modifying
 5. **Verify**: Build and test before claiming success
 6. **Fix root causes**: Diagnose and fix root causes on error. No workarounds or silent bypass
+7. **Explicit failure**: No form of arbitrary success is permitted. Every operation must genuinely succeed or explicitly fail. Prerequisite for #6 — errors must be visible before root causes can be fixed
 
 ### Mutable Artifacts (agent-evolver scope)
 
@@ -78,3 +79,4 @@ agent-evolver MUST:
 - `/workspaces/CLAUDE.md` (constitutional document)
 - `.claude/agents/agent-evolver.md` (evolution agent constraints)
 - `.claude/rules/standards/evolution-and-learning.md` (evolution pipeline)
+- `.claude/rules/standards/explicit-failure.md` (operationalization of Principle #7)

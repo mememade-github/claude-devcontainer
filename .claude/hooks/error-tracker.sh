@@ -9,7 +9,9 @@ ERROR=$(echo "$INPUT" | sed -n 's/.*"error"[[:space:]]*:[[:space:]]*"\([^"]*\)".
 
 # Log failure
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-printf '[%s] FAIL tool=%s error=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TOOL" "${ERROR:0:200}" >> "$PROJECT_DIR/.claude/.error-log" 2>/dev/null
+if ! printf '[%s] FAIL tool=%s error=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TOOL" "${ERROR:0:200}" >> "$PROJECT_DIR/.claude/.error-log"; then
+  echo "WARN: error log write failed: $PROJECT_DIR/.claude/.error-log" >&2
+fi
 
 # Inject context — remind agent to investigate
 jq -n --arg tool "$TOOL" '{

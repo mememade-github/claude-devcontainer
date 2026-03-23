@@ -13,10 +13,13 @@ INPUT=$(cat)
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # log task completion
+# Honest fallback: jq unavailable or parse failure → empty JSON (P-6)
 TASK_INFO=$(echo "$INPUT" | jq -r '.tool_input // "{}"' 2>/dev/null || echo "{}")
-printf '{"ts":"%s","event":"task_completed","info":"%s"}\n' \
+if ! printf '{"ts":"%s","event":"task_completed","info":"%s"}\n' \
   "$TIMESTAMP" "$(echo "$TASK_INFO" | head -c 200)" \
-  >> "$PROJECT_DIR/.claude/task-completions.log" 2>/dev/null || true
+  >> "$PROJECT_DIR/.claude/task-completions.log"; then
+  echo "WARN: task completion log write failed: $PROJECT_DIR/.claude/task-completions.log" >&2
+fi
 
 # non-blocking: inject quality reminder
 cat <<EOF
