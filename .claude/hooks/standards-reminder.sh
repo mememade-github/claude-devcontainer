@@ -1,9 +1,6 @@
 #!/bin/bash
-# PostToolUse hook (matcher: Edit|Write): Remind agent to consult standards when modifying .claude/ files.
+# PostToolUse hook (matcher: Edit|Write): Remind agent to run tests when modifying .claude/ files.
 # Context-injection hook (non-blocking). Uses jq for JSON I/O.
-#
-# Source: Anthropic Best Practices — "Address root causes, not symptoms"
-# Reference: https://code.claude.com/docs/en/hooks (PostToolUse, hookSpecificOutput)
 
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
@@ -14,19 +11,19 @@ RELATIVE_PATH=$(echo "$FILE_PATH" | sed "s|^$PROJECT_DIR/||")
 
 # Only activate for .claude/ subtree and CLAUDE.md
 case "$RELATIVE_PATH" in
-  .claude/agents/*) STANDARD="agent-definition.md" ;;
-  .claude/hooks/*) STANDARD="hooks-and-lifecycle.md" ;;
-  .claude/settings.json) STANDARD="hooks-and-lifecycle.md, governance.md" ;;
-  .claude/rules/*) STANDARD="knowledge-management.md, governance.md" ;;
-  .claude/skills/*) STANDARD="knowledge-management.md" ;;
-  .claude/instincts/*) STANDARD="evolution-and-learning.md" ;;
-  CLAUDE.md) STANDARD="governance.md, knowledge-management.md" ;;
+  .claude/agents/*) TEST="bash .claude/tests/test-agents.sh" ;;
+  .claude/hooks/*) TEST="bash .claude/tests/test-hooks.sh" ;;
+  .claude/settings.json) TEST="bash .claude/tests/test-hooks.sh" ;;
+  .claude/rules/*) TEST="bash .claude/tests/test-governance.sh" ;;
+  .claude/skills/*) TEST="bash .claude/tests/test-governance.sh" ;;
+  .claude/instincts/*) TEST="bash .claude/tests/test-governance.sh" ;;
+  CLAUDE.md) TEST="bash .claude/tests/test-governance.sh" ;;
   *) exit 0 ;;
 esac
 
-jq -n --arg file "$RELATIVE_PATH" --arg std "$STANDARD" '{
+jq -n --arg file "$RELATIVE_PATH" --arg test "$TEST" '{
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
-    additionalContext: (".claude/ system file modified: " + $file + ". Consult standard before further changes: .claude/rules/standards/" + $std + ". Verify: Source section has external references, compliance checks pass.")
+    additionalContext: (".claude/ file modified: " + $file + ". Verify: " + $test)
   }
 }'
