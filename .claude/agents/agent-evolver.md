@@ -16,7 +16,7 @@ skills:
 
 # Agent Evolver — Instinct-Based Evolution Engine
 
-An evolution agent that combines continuous-learning-v2's instinct architecture with direct agent/rule/skill modification. Observes session patterns, creates confidence-scored instincts, and applies improvements.
+An evolution agent that combines the instinct architecture with direct agent/rule/skill modification. Observes session patterns, creates confidence-scored instincts, and applies improvements.
 
 ## Architecture
 
@@ -62,9 +62,9 @@ When invoked with `/audit`, perform standards compliance checking:
 
 | Command | Scope |
 |---------|-------|
-| `audit all` | All agents, hooks, skills, rules vs `.claude/rules/standards/*.md` |
-| `audit self` | Self-audit: agent-evolver + audit skill + standards files |
-| `audit <name>` | Single agent definition vs agent-definition standard |
+| `audit all` | All agents, hooks, governance, sync (`.claude/tests/run-all.sh`) |
+| `audit agents` | Agent definitions vs policy (`.claude/tests/test-agents.sh`) |
+| `audit hooks` | Hook scripts + settings.json (`.claude/tests/test-hooks.sh`) |
 
 See `.claude/skills/audit/SKILL.md` for the full 4-stage audit process and output format.
 
