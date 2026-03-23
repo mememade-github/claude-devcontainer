@@ -14,7 +14,9 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 HEARTBEAT_TIMEOUT=600  # seconds — session inactive after 10 minutes without tool call
 
 # resolve actual project root (handle worktree)
+# Intentional: graceful fallback when git is not installed (P-1)
 if command -v git &>/dev/null; then
+  # Worktree resolution: may not be in a git repo (P-2)
   GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
   if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
     ACTUAL_ROOT=$(dirname "$GIT_COMMON")
@@ -25,7 +27,11 @@ else
   ACTUAL_ROOT="$PROJECT_DIR"
 fi
 
-CURRENT_PATH=$(cd "$PROJECT_DIR" 2>/dev/null && pwd -P)
+CURRENT_PATH=$(cd "$PROJECT_DIR" && pwd -P) || {
+  echo "WARN: cannot resolve PROJECT_DIR: $PROJECT_DIR" >&2
+  exit 0
+}
+# Honest fallback: "unknown" signals uncertainty (P-3)
 CURRENT_BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 NOW=$(date +%s)
 
@@ -41,8 +47,10 @@ while IFS= read -r line; do
 
   [ -z "$WT_PATH" ] && continue
 
-  WT_REAL=$(cd "$WT_PATH" 2>/dev/null && pwd -P)
-  [ -z "$WT_REAL" ] && continue
+  WT_REAL=$(cd "$WT_PATH" && pwd -P) || {
+    echo "WARN: cannot access worktree: $WT_PATH" >&2
+    continue
+  }
 
   # skip self
   [ "$WT_REAL" = "$CURRENT_PATH" ] && continue
@@ -53,7 +61,11 @@ while IFS= read -r line; do
     continue
   fi
 
-  HB_MTIME=$(stat -c '%Y' "$HB_FILE" 2>/dev/null || stat -f '%m' "$HB_FILE" 2>/dev/null || echo 0)
+  # Cross-platform: Linux stat, then macOS stat (P-4)
+  HB_MTIME=$(stat -c '%Y' "$HB_FILE" 2>/dev/null || stat -f '%m' "$HB_FILE" 2>/dev/null) || {
+    echo "WARN: cannot stat heartbeat: $HB_FILE" >&2
+    continue
+  }
   AGE=$(( NOW - HB_MTIME ))
 
   if [ "$AGE" -lt "$HEARTBEAT_TIMEOUT" ]; then
@@ -61,6 +73,7 @@ while IFS= read -r line; do
     AGE_HUMAN="${AGE}s ago"
     OUTPUT="${OUTPUT}  - ${WT_BRANCH} (${WT_PATH}) — last activity ${AGE_HUMAN}\n"
   fi
+# Optional: git worktree list may fail if not in a git repo (P-5)
 done < <(git -C "$ACTUAL_ROOT" worktree list 2>/dev/null)
 
 # output if other active sessions found
@@ -73,6 +86,7 @@ fi
 
 # check if current branch diverges from main
 if [ "$CURRENT_BRANCH" != "main" ]; then
+  # Honest fallback: "?" signals uncertainty (P-3)
   BEHIND=$(git -C "$PROJECT_DIR" rev-list --count HEAD..main 2>/dev/null || echo "?")
   if [ "$BEHIND" != "0" ] && [ "$BEHIND" != "?" ]; then
     echo "SYNC_NEEDED: Current branch is ${BEHIND} commits behind main. Consider: git rebase main"

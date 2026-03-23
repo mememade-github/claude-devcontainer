@@ -180,6 +180,8 @@ Stop hooks use a **different JSON schema** from PreToolUse hooks:
 - **Suggestion hooks** (suggest-compact): Non-blocking, advisory only
 - **Context-injection hooks** (code-review-reminder, error-tracker, standards-reminder): Non-blocking, inject `additionalContext` via JSON output
 
+Error handling requirements per category are defined in `explicit-failure.md`.
+
 ### Log Rotation
 
 - Observations file: Rotate at 10MB
@@ -198,9 +200,11 @@ Stop hooks use a **different JSON schema** from PreToolUse hooks:
 - [ ] Hook type (command/prompt/agent/http) appropriate for use case
 - [ ] Used hook events are registered in settings.json (not all 22 required — only those with active implementations)
 - [ ] Hooks outputting `hookSpecificOutput` JSON use only supported events (see table above)
+- [ ] Error handling follows explicit-failure standard (`explicit-failure.md`)
 
 ## References
 
 - https://code.claude.com/docs/en/hooks (official hooks reference)
 - `.claude/hooks/*.sh` (current hook implementations)
 - `.claude/settings.json` (hook registration)
+- `.claude/rules/standards/explicit-failure.md` (error handling per hook category)
