@@ -85,5 +85,14 @@ if [ -f "$FILE" ]; then
     if ! mv "$FILE" "$DIR/archive/observations.$(date +%Y%m%d%H%M%S).jsonl"; then
       echo "WARN: observation rotation failed: $FILE" >&2
     fi
+    # Archive quota: keep only the 3 most recent archive files (~30MB max)
+    # shellcheck disable=SC2012
+    ARCHIVE_COUNT=$(ls -1 "$DIR/archive"/observations.*.jsonl 2>/dev/null | wc -l)
+    if [ "$ARCHIVE_COUNT" -gt 3 ]; then
+      # shellcheck disable=SC2012
+      ls -1t "$DIR/archive"/observations.*.jsonl | tail -n +"4" | while IFS= read -r OLD; do
+        rm -f "$OLD"
+      done
+    fi
   fi
 fi
