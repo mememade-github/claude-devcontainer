@@ -68,22 +68,7 @@ has_list_field_items() {
   return 1
 }
 
-# Role-based tool sets (from agent-overrides.md)
-declare -A EXPECTED_TOOLS_MAP
-EXPECTED_TOOLS_MAP[agent-evolver]='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[architect]='["Read", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[build-error-resolver]='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[code-reviewer]='["Read", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[database-reviewer]='["Read", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[debugger]='["Read", "Bash", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[doc-updater]='["Read", "Write", "Edit", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[e2e-runner]='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[environment-checker]='["Read", "Bash", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[planner]='["Read", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[refactor-cleaner]='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[security-reviewer]='["Read", "Grep", "Glob"]'
-EXPECTED_TOOLS_MAP[tdd-guide]='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
-EXPECTED_TOOLS_MAP[wip-manager]='["Read", "Write", "Grep", "Glob"]'
+EXPECTED_TOOLS='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]'
 
 # Agents that require memory: project
 declare -A MEMORY_REQUIRED
@@ -114,10 +99,9 @@ for agent_file in "$AGENTS_DIR"/*.md; do
     CHECK_DETAIL[AD-1]+=" $fname"
   fi
 
-  # AD-2: tools matches role-based expected set
+  # AD-2: tools equals full set
   tools_val=$(get_field "$fm" "tools")
-  expected_tools="${EXPECTED_TOOLS_MAP[$fname]:-}"
-  if [ -n "$expected_tools" ] && [ "$tools_val" = "$expected_tools" ]; then
+  if [ "$tools_val" = "$EXPECTED_TOOLS" ]; then
     CHECK_PASS[AD-2]=$((${CHECK_PASS[AD-2]} + 1))
   else
     CHECK_FAIL[AD-2]=$((${CHECK_FAIL[AD-2]} + 1))
@@ -254,7 +238,7 @@ done
 # Emit results
 DESCS=(
   [1]="name matches filename"
-  [2]="tools matches role-based set"
+  [2]="tools equals full set"
   [3]="model is opus"
   [4]="maxTurns in 8-20"
   [5]="memory is project where required"
