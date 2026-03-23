@@ -32,7 +32,7 @@ You are an expert PostgreSQL database specialist focused on query optimization, 
 
 ## Analysis Approach
 
-This agent uses **Read, Grep, and Glob** tools exclusively (no Bash execution).
+This agent primarily uses **Read, Grep, and Glob** for static analysis. Bash is available but guarded by `validate-readonly-sql.sh` (PreToolUse hook) to block destructive SQL.
 
 ### Static Analysis via Grep/Read Patterns
 
