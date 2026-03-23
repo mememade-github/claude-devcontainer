@@ -40,6 +40,8 @@ TOOL=$(echo "$INPUT" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\
 # JSON-escape: strip control chars, escape backslash FIRST, then double-quote
 # Use tr for backslash to avoid sed double-interpretation issues (W-4 fix)
 INPUT_SUMMARY=$(echo "$INPUT" | sed -n 's/.*"tool_input"[[:space:]]*:[[:space:]]*\(.\{1,200\}\).*/\1/p' | head -1 | tr -d '\000-\010\013\014\016-\037' | tr '\n\r\t' '   ' | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+# Security: mask PAT/token patterns to prevent credential leakage in observations
+INPUT_SUMMARY=$(echo "$INPUT_SUMMARY" | sed -E 's/github_pat_[A-Za-z0-9_]{10,}/github_pat_***MASKED***/g; s/ghp_[A-Za-z0-9]{10,}/ghp_***MASKED***/g; s/glpat-[A-Za-z0-9_]{10,}/glpat-***MASKED***/g; s/ghs_[A-Za-z0-9]{10,}/ghs_***MASKED***/g')
 [ -z "$INPUT_SUMMARY" ] && INPUT_SUMMARY=""
 
 # Detect success in post phase (check for error indicators in response)
