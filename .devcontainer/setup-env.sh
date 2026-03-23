@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# [SPECIALIZED] MEMEMADE: Claude Code DevContainer — Environment Setup (postCreateCommand)
+# Claude Code DevContainer — Environment Setup (postCreateCommand)
 # =============================================================================
 set -e
 
