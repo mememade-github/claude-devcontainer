@@ -103,7 +103,7 @@ postStartCommand (매 시작 시)
 | environment-checker | Workspace health | On env issues |
 | wip-manager | Multi-session tracking | When task spans sessions |
 
-### Hooks (21)
+### Hooks (23)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
@@ -118,6 +118,7 @@ postStartCommand (매 시작 시)
 | subagent-stop-report.sh | SubagentStop | Log subagent completion summary |
 | stop-gate.sh | Stop | Block stop if review pending |
 | evolution-gate.sh | Stop | Block stop if evolution needed |
+| refinement-gate.sh | Stop | Block stop during active refinement loop |
 | pre-compact.sh | PreCompact | Save critical state before compaction |
 | post-compact.sh | PostCompact | Restore context after compaction |
 | task-quality-gate.sh | TaskCompleted | Verify task completion quality |
@@ -128,8 +129,9 @@ postStartCommand (매 시작 시)
 | validate-readonly-sql.sh | Utility | Block destructive SQL in database-reviewer |
 | worker-guard.sh | SessionStart | Multi-worker collision detection |
 | test-hooks.sh | Testing | Validate hooks |
+| test-refinement.sh | Testing | Validate refinement infrastructure |
 
-### Skills (/commands — 12)
+### Skills (/commands — 13)
 
 | Skill | Description |
 |-------|-------------|
@@ -143,6 +145,7 @@ postStartCommand (매 시작 시)
 | /instinct-status | Show instinct confidence scores |
 | /learn | Extract patterns and save as instincts |
 | /pr | Create pull request |
+| /refine | Deterministic refinement loop for code-producing agents |
 | /status | Workspace status |
 | /verify | Pre-commit verification |
 

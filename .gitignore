@@ -49,3 +49,5 @@ Thumbs.db
 *.temp
 *.bak
 *~
+.claude/.error-log
+.claude/instincts/observations.jsonl
