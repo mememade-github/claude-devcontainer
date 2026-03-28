@@ -21,14 +21,12 @@ result() {
 SYNC_TARGETS=(
   "products/derived/DAX_ROOT/claude-devcontainer"
   "products/derived/DAX_ROOT/claude-datascience-devcontainer"
-  "products/derived/DAX_LEAF/claude-devcontainer"
-  "products/derived/DAX_LEAF/claude-datascience-devcontainer"
   "products/derived/DAX_LEAF/poc-rag"
 )
 
 # Syncable directories (what syncs per PROJECT.md):
 # rules/ (root-level), rules/standards/, skills/, hooks/, agents/, settings.json
-# What does NOT sync: rules/project/, agent-memory/, instincts/
+# What does NOT sync: rules/project/, agent-memory/
 
 # Build list of syncable dirs that actually exist in ROOT
 SYNC_DIRS=()
@@ -94,6 +92,18 @@ for target_rel in "${SYNC_TARGETS[@]}"; do
             diff_count=$((diff_count + 1))
           fi
         done
+      fi
+      # Check rules/project/agent-overrides.md (synced per PROJECT.md)
+      ao_root="$root_dir/project/agent-overrides.md"
+      ao_target="$target_dir/project/agent-overrides.md"
+      if [ -f "$ao_root" ]; then
+        if [ ! -f "$ao_target" ]; then
+          diffs+=" $sync_dir/project/agent-overrides.md(missing)"
+          diff_count=$((diff_count + 1))
+        elif ! diff -q "$ao_root" "$ao_target" > /dev/null 2>&1; then
+          diffs+=" $sync_dir/project/agent-overrides.md(differs)"
+          diff_count=$((diff_count + 1))
+        fi
       fi
       continue
     fi
