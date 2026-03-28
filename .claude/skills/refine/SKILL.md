@@ -26,11 +26,11 @@ Each iteration: run agent → score via tools → record → build trajectory �
 Only code-producing agents can be refined — they produce executable output with deterministic reward signals.
 
 ```
-CODE_PRODUCING_AGENTS: build-error-resolver, tdd-guide, refactor-cleaner, e2e-runner
+CODE_PRODUCING_AGENTS: build-error-resolver, e2e-runner
 ```
 
 If the requested agent is NOT in the list above:
-- Respond: "Cannot refine `<agent>`. Only code-producing agents support deterministic refinement: build-error-resolver, tdd-guide, refactor-cleaner, e2e-runner. Other agents produce natural language judgments without measurable quality signals."
+- Respond: "Cannot refine `<agent>`. Only code-producing agents support deterministic refinement: build-error-resolver, e2e-runner. Other agents produce natural language judgments without measurable quality signals."
 - Do NOT create the `.refinement-active` marker.
 - Stop immediately.
 
@@ -138,6 +138,25 @@ Fix the specific issues shown in the feedback above. Focus on the remaining erro
 
 Return to **Step 2**.
 
+## Governance: Accept/Reject Policy
+
+Deterministic, threshold-based — no exceptions, no manual override needed.
+
+| Condition | Decision | Action |
+|-----------|----------|--------|
+| `score >= threshold` | **ACCEPT** | Keep changes, remove marker, report success |
+| `score < threshold` AND `iteration < max_iter` | **CONTINUE** | Re-run agent with trajectory feedback |
+| `score < threshold` AND `iteration >= max_iter` | **REJECT** | Revert changes (`git checkout -- .`), remove marker, report failure |
+
+On REJECT:
+1. `git checkout -- .` to revert all uncommitted changes from the loop
+2. Report: "Refinement REJECTED: best score {score} < threshold {threshold} after {max_iter} iterations."
+3. The user decides next steps (adjust task, change threshold, or accept current state)
+
+On ACCEPT:
+1. Report: "Refinement ACCEPTED: score {score} >= threshold {threshold} at iteration {iteration}."
+2. Changes remain staged for the user to commit
+
 ## Design Principles
 
 1. **Code-producing agents only** — deterministic rewards exist only where output is executable code
@@ -145,3 +164,4 @@ Return to **Step 2**.
 3. **Structural feedback** — raw tool errors (ruff, pytest, mypy) in CDATA, not summaries
 4. **Zero environment dependencies** — jq + bash builtins only
 5. **Existing system safety** — no `.refinement-active` marker = NOP for all hooks
+6. **No governance exceptions** — threshold is the sole arbiter; adjust threshold, not policy

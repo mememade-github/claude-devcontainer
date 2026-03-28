@@ -32,11 +32,12 @@ Global `effortLevel: high` in `settings.json`. Per-agent `effort` field not used
 
 | Team | Agents | Auto-trigger |
 |------|--------|-------------|
-| quality | code-reviewer, security-reviewer, database-reviewer, environment-checker, agent-evolver | After code changes; on env issues; before session end |
-| build | build-error-resolver, tdd-guide, refactor-cleaner | On build failure; on new feature; on maintenance |
-| testing | e2e-runner, tdd-guide | On feature completion; on regression check |
-| docs | doc-updater | On system changes (agents, services, scripts) |
+| quality | code-reviewer, agent-evolver | After code changes; on audit request |
+| build | build-error-resolver | On build failure; on runtime error |
+| testing | e2e-runner | On feature completion; on regression check |
 | workflow | wip-manager | When tasks span sessions |
+
+> planner is not team-bound — invoked on-demand for design/architecture tasks.
 
 ## Frontmatter Reference
 
@@ -64,23 +65,15 @@ Global `effortLevel: high` in `settings.json`. Per-agent `effort` field not used
 
 > Verified by: `bash .claude/tests/test-agents.sh`
 
-## Agent Inventory (14)
+## Agent Inventory (6)
 
 All agents: `model: opus`, full tools, `maxTurns` 8-20.
 
 | Agent | maxTurns | Boundary | Skills | Color | MCP | Extra | Purpose |
 |-------|----------|----------|--------|-------|-----|-------|---------|
 | agent-evolver | 15 | audit/report | verify, audit | magenta | — | background, memory | Standards compliance auditor |
-| architect | 20 | analyze/recommend | — | cyan | serena | — | Architecture patterns and design review |
-| build-error-resolver | 15 | — | verify, build-fix | red | — | — | Fix build/type errors with minimal diffs |
-| code-reviewer | 15 | review/report | verify | green | serena | hooks | Code review with severity framework |
-| database-reviewer | 15 | audit/recommend | — | blue | serena | hooks | PostgreSQL optimization, schema design |
-| debugger | 15 | diagnose/delegate | — | yellow | serena | — | Root cause analysis for runtime errors |
-| doc-updater | 15 | docs only | — | cyan | context7 | background | Documentation and codemap specialist |
-| e2e-runner | 15 | — | verify | green | — | isolation | E2E testing (curl, Playwright) |
-| environment-checker | 10 | diagnose/env-fix | status | yellow | — | background | Workspace health verification |
-| planner | 20 | plan/document | — | cyan | serena, context7 | — | Implementation planning specialist |
-| refactor-cleaner | 15 | — | verify | magenta | — | isolation | Dead code cleanup and consolidation |
-| security-reviewer | 15 | detect/report | verify | red | serena | — | Security vulnerability detection (OWASP) |
-| tdd-guide | 20 | — | verify | green | serena | isolation | TDD: RED→GREEN→REFACTOR cycle |
+| build-error-resolver | 15 | — | verify, build-fix | red | — | — | Build errors + runtime debugging |
+| code-reviewer | 15 | review/report | verify | green | serena | hooks | Code + security + DB review |
+| e2e-runner | 20 | — | verify | green | — | isolation | TDD + unit + E2E testing |
+| planner | 20 | plan/document | — | cyan | serena, context7 | — | Planning + architecture |
 | wip-manager | 8 | wip/ dir only | status | blue | — | memory | Multi-session task tracking |
