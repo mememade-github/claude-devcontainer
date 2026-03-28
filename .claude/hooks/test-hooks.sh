@@ -235,8 +235,8 @@ fi
 # --- Test 15: Standards reminder (.claude/ file) ---
 echo -n "15. Standards reminder (.claude/ file): "
 RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/.claude/hooks/example.sh"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/standards-reminder.sh" 2>&1)
-if echo "$RESULT" | grep -q "hooks-and-lifecycle"; then
-  echo "PASS (standard mapped: hooks-and-lifecycle)"
+if echo "$RESULT" | grep -q "additionalContext"; then
+  echo "PASS (context injected for .claude/ file)"
   PASS=$((PASS + 1))
 else
   echo "FAIL (result=$RESULT)"

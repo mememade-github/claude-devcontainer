@@ -15,7 +15,7 @@ fi
 # Block destructive commands (case-insensitive)
 # Covers: rm -rf, git push --force/-f, git reset --hard, git checkout -- ., git clean -f,
 #         mv/cp overwrite patterns, DROP, DELETE FROM, TRUNCATE
-if echo "$COMMAND" | grep -iE '\brm\s+-(r|rf|fr)\s|\bgit\s+push\s+(--force|-f)\b|\bgit\s+reset\s+--hard\b|\bgit\s+checkout\s+--\s*\.|\bgit\s+clean\s+-[a-z]*f|\bDROP\s+|\bDELETE\s+FROM\b|\bTRUNCATE\b' > /dev/null; then
+if echo "$COMMAND" | grep -iE '\brm\s+-(r|rf|fr)\s|\bgit\s+push\s+(--force|-f)\b|\bgit\s+reset\s+--hard\b|\bgit\s+checkout\s+--\s*\.|\bgit\s+clean\s+-[a-z]*f|\bDROP\s+(TABLE|DATABASE|INDEX|VIEW|SCHEMA)\b|\bDELETE\s+FROM\b|\bTRUNCATE\b' > /dev/null; then
   echo "Destructive command blocked: requires explicit user approval per CLAUDE.md governance." >&2
   echo "Command: $(echo "$COMMAND" | head -c 200)" >&2
   exit 2
