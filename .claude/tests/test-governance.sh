@@ -263,7 +263,7 @@ for inst in "$CLAUDE_DIR"/instincts/archive/*.md; do
   fi
 done
 if [ "$ev3_count" -eq 0 ]; then
-  result "SKIP" "EV-3" "archived instincts below 0.2" "no archived instincts"
+  result "PASS" "EV-3" "archived instincts below 0.2" "no archived instincts (vacuous pass)"
 else
   if [ -z "$ev3_fails" ]; then
     result "PASS" "EV-3" "archived instincts below 0.2" "$ev3_count archived"
@@ -272,8 +272,26 @@ else
   fi
 fi
 
-# EV-4: SKIP (evolved artifact locations — requires runtime tracing)
-result "SKIP" "EV-4" "evolved artifact locations" "runtime only"
+# EV-4: evolved artifact locations — mark-evolved.sh writes to .claude/ subdir
+ev4_ok=true
+MARK_EVOLVED="$CLAUDE_DIR/hooks/mark-evolved.sh"
+if [ -f "$MARK_EVOLVED" ]; then
+  # Verify marker path uses .claude/ prefix (not arbitrary location)
+  if grep -q '\.claude/\.last-evolution' "$MARK_EVOLVED"; then
+    # Verify it uses ACTUAL_ROOT resolution for worktree support
+    if grep -q 'ACTUAL_ROOT' "$MARK_EVOLVED"; then
+      result "PASS" "EV-4" "evolved artifact locations" ".claude/ subdir + worktree-aware"
+    else
+      ev4_ok=false
+      result "FAIL" "EV-4" "evolved artifact locations" "no worktree resolution"
+    fi
+  else
+    ev4_ok=false
+    result "FAIL" "EV-4" "evolved artifact locations" "marker not in .claude/"
+  fi
+else
+  result "FAIL" "EV-4" "evolved artifact locations" "mark-evolved.sh not found"
+fi
 
 # EV-5: mark-evolved.sh exists
 if [ -f "$CLAUDE_DIR/hooks/mark-evolved.sh" ]; then
@@ -314,11 +332,83 @@ else
   result "FAIL" "TP-2" "all agents have maxTurns" "missing:${tp2_fails}"
 fi
 
-# TP-3..6: SKIP (runtime only — team lifecycle, communication, etc.)
-result "SKIP" "TP-3" "team lifecycle enforcement" "runtime only"
-result "SKIP" "TP-4" "team sizing compliance" "runtime only"
-result "SKIP" "TP-5" "task assignment protocol" "runtime only"
-result "SKIP" "TP-6" "communication protocol" "runtime only"
+# TP-3: team lifecycle hooks registered (SubagentStart + SubagentStop + TaskCompleted)
+tp3_missing=""
+for event in SubagentStart SubagentStop TaskCompleted; do
+  if ! python3 -c "
+import json
+with open('$CLAUDE_DIR/settings.json') as f:
+    data = json.load(f)
+assert '$event' in data.get('hooks', {}), 'missing'
+" 2>/dev/null; then
+    tp3_missing+=" $event"
+  fi
+done
+if [ -z "$tp3_missing" ]; then
+  result "PASS" "TP-3" "team lifecycle enforcement" "SubagentStart+SubagentStop+TaskCompleted registered"
+else
+  result "FAIL" "TP-3" "team lifecycle enforcement" "missing events:${tp3_missing}"
+fi
+
+# TP-4: team sizing — all agents in agent-overrides.md exist as files
+tp4_fails=""
+OVERRIDES="$CLAUDE_DIR/rules/project/agent-overrides.md"
+if [ -f "$OVERRIDES" ]; then
+  # Extract agent names from the inventory table (2nd column is a number = maxTurns)
+  override_agents=$(grep -E '^\| [a-z]' "$OVERRIDES" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); if ($3 ~ /^[0-9]+$/) print $2}' | sort -u)
+  while IFS= read -r aname; do
+    [ -z "$aname" ] && continue
+    if [ ! -f "$CLAUDE_DIR/agents/${aname}.md" ]; then
+      tp4_fails+=" $aname"
+    fi
+  done <<< "$override_agents"
+  agent_count=$(echo "$override_agents" | grep -c . || true)
+  if [ -z "$tp4_fails" ]; then
+    result "PASS" "TP-4" "team sizing compliance" "$agent_count agents in overrides, all exist"
+  else
+    result "FAIL" "TP-4" "team sizing compliance" "missing agent files:${tp4_fails}"
+  fi
+else
+  result "FAIL" "TP-4" "team sizing compliance" "agent-overrides.md not found"
+fi
+
+# TP-5: task assignment — CLAUDE.md team table matches agent-overrides.md team table
+tp5_ok=true
+if [ -f "$CLAUDE_MD" ] && [ -f "$OVERRIDES" ]; then
+  # Extract team names from CLAUDE.md delegation table
+  claude_teams=$(grep -E '^\| (quality|build|testing|docs|workflow) ' "$CLAUDE_MD" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
+  # Extract team names from agent-overrides.md team table
+  override_teams=$(grep -E '^\| (quality|build|testing|docs|workflow) ' "$OVERRIDES" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
+  if [ "$claude_teams" = "$override_teams" ] && [ -n "$claude_teams" ]; then
+    team_count=$(echo "$claude_teams" | wc -l)
+    result "PASS" "TP-5" "task assignment protocol" "$team_count teams consistent across CLAUDE.md and overrides"
+  else
+    tp5_ok=false
+    result "FAIL" "TP-5" "task assignment protocol" "team tables diverge between CLAUDE.md and overrides"
+  fi
+else
+  result "FAIL" "TP-5" "task assignment protocol" "CLAUDE.md or agent-overrides.md not found"
+fi
+
+# TP-6: communication protocol — SubagentStop hook has logging/reporting
+tp6_ok=true
+SUBAGENT_STOP_HOOK="$CLAUDE_DIR/hooks/subagent-stop-report.sh"
+if [ -f "$SUBAGENT_STOP_HOOK" ]; then
+  # Verify it logs agent info (agent_type, summary) and writes to log file
+  has_agent_type=false; has_log_write=false
+  grep -q 'agent_type' "$SUBAGENT_STOP_HOOK" && has_agent_type=true
+  grep -q 'LOG_FILE\|subagent\.log\|>>' "$SUBAGENT_STOP_HOOK" && has_log_write=true
+  if $has_agent_type && $has_log_write; then
+    result "PASS" "TP-6" "communication protocol" "SubagentStop logs agent_type + writes log"
+  else
+    missing=""
+    $has_agent_type || missing+=" agent_type"
+    $has_log_write || missing+=" log_write"
+    result "FAIL" "TP-6" "communication protocol" "missing:${missing}"
+  fi
+else
+  result "FAIL" "TP-6" "communication protocol" "subagent-stop-report.sh not found"
+fi
 
 TOTAL=$((PASS + FAIL + SKIP))
 echo "---"

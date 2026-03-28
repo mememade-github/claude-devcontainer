@@ -16,8 +16,8 @@ if [ -z "$COMMAND" ]; then
 fi
 
 # Block destructive SQL operations (case-insensitive)
-if echo "$COMMAND" | grep -iE '\b(DROP|TRUNCATE|ALTER)\b' > /dev/null 2>&1; then
-  echo "Blocked: Destructive SQL operation detected (DROP/TRUNCATE/ALTER). Database-reviewer operates in review mode only." >&2
+if echo "$COMMAND" | grep -iE '\b(DROP|TRUNCATE|ALTER|DELETE\s+FROM)\b' > /dev/null 2>&1; then
+  echo "Blocked: Destructive SQL operation detected (DROP/TRUNCATE/ALTER/DELETE). Database-reviewer operates in review mode only." >&2
   exit 2
 fi
 

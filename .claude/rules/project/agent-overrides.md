@@ -14,13 +14,15 @@ Rationale: consistency and maximum capability across all agent operations.
 
 ## Tool Access Policy
 
-All agents have full tool access. Behavioral boundaries are enforced at the prompt level, not by tool restriction.
+All agents have full tool access. Behavioral boundaries are enforced at the prompt level, not by tool restriction. This aligns with the autoresearch principle: maximize agent capability, control via measurement.
 
 ```yaml
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]
 ```
 
 Each agent's prompt defines a **Behavioral Boundary** section specifying its operational scope (e.g., "you REVIEW and REPORT — you do not fix code"). This preserves full diagnostic capability while establishing clear role expectations.
+
+**Exception — agent-evolver**: May modify rules/ and skills/ directly, but agents/*.md changes must be proposed (not applied) to prevent self-referential modification loops.
 
 ## Effort Policy
 

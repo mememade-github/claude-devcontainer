@@ -134,6 +134,28 @@ for stale_marker in "$ACTUAL_ROOT"/.claude/.pending-review.* "$ACTUAL_ROOT"/.cla
   fi
 done
 
+# orphan marker cleanup: remove markers for deleted branches
+for marker in "$ACTUAL_ROOT"/.claude/.last-verification.* "$ACTUAL_ROOT"/.claude/.last-evolution.*; do
+  [ -f "$marker" ] || continue
+  MARKER_FILE=$(basename "$marker")
+  MARKER_BRANCH=""
+  for PREFIX in ".last-verification." ".last-evolution."; do
+    if [[ "$MARKER_FILE" == ${PREFIX}* ]]; then
+      MARKER_BRANCH="${MARKER_FILE#${PREFIX}}"
+      break
+    fi
+  done
+  [ -z "$MARKER_BRANCH" ] && continue
+  if ! git -C "$PROJECT_DIR" rev-parse --verify "$MARKER_BRANCH" &>/dev/null; then
+    rm -f "$marker"
+  fi
+done
+
+# legacy stop marker cleanup (v2 → shared marker migration)
+rm -f "$ACTUAL_ROOT"/.claude/.stop-blocked-review.* \
+      "$ACTUAL_ROOT"/.claude/.stop-blocked-evolution.* \
+      "$ACTUAL_ROOT"/.claude/.stop-blocked-refinement.*
+
 # 6. Session collaboration guard (detect other active sessions via heartbeat)
 # use PROJECT_DIR (not ACTUAL_ROOT) — hooks are code, not shared data
 WORKER_GUARD="$PROJECT_DIR/.claude/hooks/worker-guard.sh"

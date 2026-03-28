@@ -6,8 +6,6 @@ model: opus
 maxTurns: 20
 color: green
 isolation: worktree
-mcpServers:
-  - serena
 skills:
   - verify
 ---

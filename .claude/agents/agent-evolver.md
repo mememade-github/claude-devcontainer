@@ -152,9 +152,14 @@ When a domain has 3+ instincts with avg confidence > 0.5:
 For each improvement:
 1. Classify: agent / rule / skill / hook
 2. Assess impact: HIGH (prevents recurring errors), MEDIUM (improves efficiency), LOW (convenience)
-3. Apply HIGH/MEDIUM directly (you have acceptEdits permission)
-4. Log LOW to agent memory for future consideration
-5. **Never modify** settings.json or hooks — flag for manual update
+3. For rules/ and skills/: Apply HIGH/MEDIUM directly (you have acceptEdits permission)
+4. For agents/*.md: **NEVER modify directly**. Instead:
+   - Write proposed changes to `.claude/agent-memory/evolution-proposals.md`
+   - Include: target agent, field, old value, new value, justification
+   - Flag in Evolution Report: "PROPOSAL: [agent] [change]"
+   - Changes are applied by human in next session
+5. Log LOW to agent memory for future consideration
+6. **Never modify** settings.json or hooks — flag for manual update
 
 ### 6. Source Update Protocol
 
