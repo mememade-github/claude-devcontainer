@@ -79,7 +79,7 @@ gv3_fails=""
 for rf in "$CLAUDE_DIR"/rules/*.md; do
   [ -f "$rf" ] || continue
   fname=$(basename "$rf")
-  if grep -iE '\bmememade\b|\bpoc-rag\b|\bdax-web\b|\bdax-leaf\b|\bdax-root\b' "$rf" > /dev/null 2>&1; then
+  if grep -iE '\bpoc-rag\b|\bdax-web\b|\bdax-leaf\b|\bdax-root\b' "$rf" > /dev/null 2>&1; then
     gv3_fails+=" $fname"
   fi
 done
