@@ -7,7 +7,7 @@ set -e
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-STEP_TOTAL=2
+STEP_TOTAL=4
 STEP=0
 step() { STEP=$((STEP + 1)); echo "[${STEP}/${STEP_TOTAL}] $1"; }
 
@@ -58,12 +58,39 @@ else
 fi
 
 # =============================================================================
-# 3. MCP: 플러그인 제공 (setup-env.sh에서 직접 등록하지 않음)
+# 3. MCP: Context7 (라이브러리 문서 검색)
 # =============================================================================
-# Context7, Serena, Playwright MCP 서버는 Claude Code 플러그인이 자동 관리합니다.
-# 플러그인: context7, serena, playwright (installed_plugins.json)
-# 여기서 ~/.claude.json에 중복 등록하면 도구가 2× 나열되고 서버 프로세스가 이중 실행됩니다.
-# 제거일: 2026-03-21, 사유: 플러그인-직접등록 이중 등록 해소
+step "MCP: Context7..."
+if ! command -v claude &>/dev/null; then
+    echo "      WARN: claude CLI 미설치 — MCP 설정 건너뜀"
+elif ! command -v npx &>/dev/null; then
+    echo "      WARN: npx 미설치 — Context7 건너뜀"
+else
+    claude mcp remove context7 --scope user >/dev/null 2>&1 || true
+    claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp@latest >/dev/null 2>&1 \
+        && echo "      context7: OK" \
+        || echo "      WARN: context7 등록 실패"
+fi
+
+# =============================================================================
+# 4. MCP: Serena (코드 인텔리전스 — Dockerfile에서 사전 설치됨)
+# =============================================================================
+step "MCP: Serena..."
+SERENA_DIR="${HOME}/work/serena"
+UV_PATH=$(command -v uv 2>/dev/null || echo "${HOME}/.local/bin/uv")
+
+if ! command -v claude &>/dev/null; then
+    echo "      WARN: claude CLI 미설치 — 건너뜀"
+elif [ ! -d "$SERENA_DIR" ]; then
+    echo "      WARN: Serena 미설치 ($SERENA_DIR 없음)"
+elif [ ! -x "$UV_PATH" ]; then
+    echo "      WARN: uv 미설치"
+else
+    claude mcp remove serena --scope user >/dev/null 2>&1 || true
+    claude mcp add --scope user serena -- "$UV_PATH" run --directory "$SERENA_DIR" serena-mcp-server --context claude-code --project-from-cwd >/dev/null 2>&1 \
+        && echo "      serena: OK" \
+        || echo "      WARN: serena 등록 실패"
+fi
 
 # =============================================================================
 # Project-specific setup (파일 분리)
@@ -84,7 +111,7 @@ echo "=============================================="
 echo "  Setup Complete!"
 echo "=============================================="
 echo ""
-echo "MCP: 플러그인 관리 (context7, serena, playwright)"
+echo "MCP: $(claude mcp list 2>/dev/null | grep -c 'Connected\|Failed' || echo '0') servers"
 echo ""
 echo "시작:  claude"
 echo ""
