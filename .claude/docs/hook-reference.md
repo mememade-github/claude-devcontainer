@@ -52,6 +52,125 @@
 
 ---
 
+## 23 Hook Scripts
+
+### settings.json Event Mapping (16 직접 등록)
+
+| Event | Matcher | Hook | Timeout | Category |
+|-------|---------|------|---------|----------|
+| SessionStart | (all) | session-start.sh | 15s | Context injection |
+| PreToolUse | Bash | block-destructive.sh | 5s | Gate |
+| PreToolUse | Bash | pre-commit-gate.sh | 5s | Gate |
+| PreToolUse | Bash | pre-push-gate.sh | 5s | Gate |
+| PreToolUse | (all) | observe.sh pre | 2s | Observation |
+| PostToolUse | Edit\|Write | code-review-reminder.sh | 5s | Suggestion |
+| PostToolUse | Edit\|Write | suggest-compact.sh | 2s | Suggestion |
+| PostToolUse | Edit\|Write | standards-reminder.sh | 5s | Suggestion |
+| PostToolUse | (all) | observe.sh post | 2s | Observation |
+| PostToolUseFailure | (all) | error-tracker.sh | 5s | Observation |
+| Stop | (all) | stop-gate.sh | 5s | Gate |
+| Stop | (all) | evolution-gate.sh | 5s | Gate |
+| Stop | (all) | refinement-gate.sh | 10s | Gate |
+| SubagentStop | (all) | subagent-stop-report.sh | 5s | Observation |
+| PreCompact | (all) | pre-compact.sh | 5s | Context |
+| PostCompact | (all) | post-compact.sh | 5s | Context |
+| TaskCompleted | (all) | task-quality-gate.sh | 5s | Gate |
+
+> SubagentStart uses inline echo, not a separate script.
+
+### Indirect Call Hooks (7 helper scripts)
+
+| Hook | Called By | Purpose |
+|------|----------|---------|
+| claude-update-check.sh | session-start.sh | Daily auto-update check (cached 24h) |
+| worker-guard.sh | session-start.sh | Detect other active sessions via worktree heartbeat |
+| mark-verified.sh | pre-commit-gate.sh | Create verification timestamp marker |
+| mark-evolved.sh | evolution-gate.sh | Create evolution timestamp marker |
+| review-complete.sh | code-review-reminder.sh | Clear pending-review marker |
+| validate-readonly-sql.sh | database-reviewer (agent hooks) | Block destructive SQL in DB reviewer |
+| test-hooks.sh | (test suite) | Automated hook testing (not a runtime hook) |
+
+---
+
+## Hook Categories
+
+### Gate Hooks (6)
+
+Block operations when conditions are not met. Use exit 2 + stderr (PreToolUse) or JSON decision (Stop).
+
+| Hook | Event | Blocks When |
+|------|-------|-------------|
+| block-destructive.sh | PreToolUse (Bash) | `rm -rf`, `git push --force`, `DROP TABLE`, etc. |
+| pre-commit-gate.sh | PreToolUse (Bash) | Verification marker stale before `git commit` |
+| pre-push-gate.sh | PreToolUse (Bash) | PAT token in remote URL before `git push` |
+| stop-gate.sh | Stop | Code review pending (unreported file changes) |
+| evolution-gate.sh | Stop | Meaningful work done but no evolution performed |
+| refinement-gate.sh | Stop | Active refinement loop in progress |
+
+### Observation Hooks (3)
+
+Collect data silently. Always exit 0.
+
+| Hook | Event | Collects |
+|------|-------|----------|
+| observe.sh | PreToolUse/PostToolUse (all) | Tool calls → instincts/observations.jsonl |
+| error-tracker.sh | PostToolUseFailure | Tool failures → .error-log |
+| subagent-stop-report.sh | SubagentStop | Agent completion → subagent.log |
+
+### Suggestion Hooks (3)
+
+Inject reminders into context. Always exit 0.
+
+| Hook | Event | Suggests |
+|------|-------|----------|
+| code-review-reminder.sh | PostToolUse (Edit\|Write) | Code review after products/ file changes |
+| standards-reminder.sh | PostToolUse (Edit\|Write) | Run tests after .claude/ file changes |
+| suggest-compact.sh | PostToolUse (Edit\|Write) | Compaction when tool call count exceeds threshold |
+
+### Context Hooks (3)
+
+Save/restore state around lifecycle events.
+
+| Hook | Event | Action |
+|------|-------|--------|
+| session-start.sh | SessionStart | Inject git branch, WIP tasks, env status, instinct count |
+| pre-compact.sh | PreCompact | Save critical state before compaction |
+| post-compact.sh | PostCompact | Restore context awareness after compaction |
+
+### Quality Gate Hook (1)
+
+| Hook | Event | Action |
+|------|-------|--------|
+| task-quality-gate.sh | TaskCompleted | Quality check on completed agent team tasks |
+
+### Utility Scripts (5)
+
+Called by other hooks, not registered in settings.json.
+
+| Hook | Purpose |
+|------|---------|
+| claude-update-check.sh | Check for Claude Code updates (daily, cached) |
+| worker-guard.sh | Detect concurrent sessions via worktree heartbeat |
+| mark-verified.sh | Write `.last-verification.$branch` marker |
+| mark-evolved.sh | Write `.last-evolution.$branch` marker |
+| review-complete.sh | Clear `.pending-review` marker |
+
+### Agent-Scoped Hook (1)
+
+Registered in agent frontmatter `hooks:` field, not in global settings.json.
+
+| Hook | Agent | Purpose |
+|------|-------|---------|
+| validate-readonly-sql.sh | database-reviewer | Block destructive SQL (DROP, DELETE, TRUNCATE, ALTER) |
+
+### Test Script (1)
+
+| Hook | Purpose |
+|------|---------|
+| test-hooks.sh | Automated hook testing suite (20 tests) |
+
+---
+
 ## 22 Official Hook Events
 
 | Event | Timing | Status | Use Case |
@@ -278,3 +397,7 @@ Option B -- Manual (VS Code GUI, for extension/UI testing):
 2. Run Phase 4 Option A (CLI) for automated verification
 3. Fall back to Option B (manual handoff) only for VS Code extension testing:
    > "Phase 1-4A complete. VS Code extensions require manual verification: Reopen in Container from HOST."
+
+---
+
+*Last updated: 2026-03-28*
