@@ -1,7 +1,7 @@
 #!/bin/bash
 # memory-ops.sh — Refinement attempt CRUD (JSONL storage)
-# Usage: memory-ops.sh <command> --task <id> [options]
-# Commands: add, list, best, count, clear
+# Usage: memory-ops.sh add   --task <id> --agent <name> --score <n> [--feedback <text>] [--result <text>]
+#        memory-ops.sh {list|best|count|clear} --task <id>
 
 set -euo pipefail
 
