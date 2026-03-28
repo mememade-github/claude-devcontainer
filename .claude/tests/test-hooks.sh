@@ -357,8 +357,28 @@ else
   result "FAIL" "HK-17" "observe.sh has write failure warning" "observe.sh not found"
 fi
 
-# --- HK-18: SKIP (helper script error propagation — runtime only) ---
-result "SKIP" "HK-18" "helper script error propagation" "runtime only"
+# --- HK-18: helper scripts called from hooks are not silenced with || true ---
+# Verify that utility scripts (mark-verified, mark-evolved, review-complete) are not
+# called with "|| true" or "|| :" in any hook, which would swallow errors.
+HELPER_SCRIPTS=("mark-verified.sh" "mark-evolved.sh" "review-complete.sh")
+hk18_fails=""
+for hs in "${HELPER_SCRIPTS[@]}"; do
+  for f in "$HOOKS_DIR"/*.sh; do
+    [ -f "$f" ] || continue
+    fname=$(basename "$f")
+    [ "$fname" = "$hs" ] && continue  # skip self-reference
+    # Check for lines calling the helper with error suppression
+    if grep -vE '^\s*#' "$f" | grep -q "$hs" && \
+       grep -vE '^\s*#' "$f" | grep "$hs" | grep -qE '\|\|[[:space:]]*(true|:)'; then
+      hk18_fails+=" $fname->$hs"
+    fi
+  done
+done
+if [ -z "$hk18_fails" ]; then
+  result "PASS" "HK-18" "helper script error propagation" "no error suppression on helper calls"
+else
+  result "FAIL" "HK-18" "helper script error propagation" "suppressed:${hk18_fails}"
+fi
 
 # --- HK-19: Stop hooks count (refinement-gate included) ---
 STOP_COUNT=$(jq '.hooks.Stop[0].hooks | length' "$SETTINGS" 2>/dev/null || echo "0")

@@ -43,7 +43,9 @@ mask_secrets() {
 # --- Project type detection (completion-checker.sh pattern) ---
 detect_type() {
   local dir="$1"
-  if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then echo "python"
+  if [ -d "$dir/.claude/tests" ] && [ -f "$dir/.claude/tests/run-all.sh" ]; then
+    echo "claude-system"
+  elif [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then echo "python"
   elif [ -f "$dir/package.json" ]; then echo "typescript"
   else echo "unknown"; fi
 }
@@ -121,16 +123,29 @@ elif [ "$PROJECT_TYPE" = "typescript" ] && [ -f "$PROJECT/package.json" ]; then
     BUILD_OK=true
   fi
   BUILD_FEEDBACK=$(echo "$BUILD_RAW" | tail -20 | head -c 2000)
+elif [ "$PROJECT_TYPE" = "claude-system" ]; then
+  TOOLS_JSON=$(echo "$TOOLS_JSON" | jq '.run_all = "available"')
+  TOOLS_JSON=$(echo "$TOOLS_JSON" | jq '.build = "available"')
+  TEST_RAW=$(bash "$PROJECT/.claude/tests/run-all.sh" 2>&1 || true)
+  GRAND_LINE=$(echo "$TEST_RAW" | grep '^TOTAL:' | tail -1)
+  TEST_PASSED=$(echo "$GRAND_LINE" | sed -n 's/.*PASS:[[:space:]]*\([0-9]*\).*/\1/p')
+  TEST_TOTAL=$(echo "$GRAND_LINE" | sed -n 's/.*TOTAL:[[:space:]]*\([0-9]*\).*/\1/p')
+  [ -z "$TEST_PASSED" ] && TEST_PASSED=0
+  [ -z "$TEST_TOTAL" ] && TEST_TOTAL=0
+  BUILD_OK=true
+  TEST_FEEDBACK=$(echo "$TEST_RAW" | tail -20 | head -c 2000)
 else
   TOOLS_JSON=$(echo "$TOOLS_JSON" | jq '.build = "unavailable"')
 fi
 
-# --- Tests (pytest) ---
-TEST_PASSED="null"
-TEST_TOTAL="null"
-TEST_FEEDBACK=""
+# --- Tests (pytest — skipped if claude-system already populated) ---
+if [ "$PROJECT_TYPE" != "claude-system" ]; then
+  TEST_PASSED="null"
+  TEST_TOTAL="null"
+  TEST_FEEDBACK=""
+fi
 
-if $HAS_PYTEST; then
+if $HAS_PYTEST && [ "$PROJECT_TYPE" != "claude-system" ]; then
   TOOLS_JSON=$(echo "$TOOLS_JSON" | jq '.pytest = "available"')
   TEST_RAW=$(cd "$PROJECT" && .venv/bin/pytest tests/unit --tb=short -q --no-header 2>&1 | strip_ansi || true)
   if echo "$TEST_RAW" | grep -q 'no tests ran'; then

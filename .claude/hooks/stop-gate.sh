@@ -27,7 +27,7 @@ BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "
 BRANCH_SAFE=$(echo "$BRANCH" | tr '/' '-')
 
 # File-based loop prevention: if we already blocked once recently, allow stop
-BLOCK_MARKER="$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
+BLOCK_MARKER="$ACTUAL_ROOT/.claude/.stop-blocked-any.$BRANCH_SAFE"
 if [ -f "$BLOCK_MARKER" ]; then
   BLOCK_MTIME=$(stat -c %Y "$BLOCK_MARKER" 2>/dev/null) || {
     # Cannot read block marker — safe to clear and continue
@@ -54,12 +54,28 @@ while IFS= read -r file; do
   [ -z "$file" ] && continue
   FULL_PATH="$ACTUAL_ROOT/$file"
   if [ -f "$FULL_PATH" ]; then
-    # file exists: check for unstaged or staged changes
-    # git diff conditional: failure = "no changes" = correct semantics (P-8)
-    if git -C "$ACTUAL_ROOT" diff --name-only HEAD -- "$file" 2>/dev/null | grep -q .; then
-      UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
-    elif git -C "$ACTUAL_ROOT" diff --cached --name-only -- "$file" 2>/dev/null | grep -q .; then
-      UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
+    # subrepo detection: find the git root for this file
+    FILE_DIR=$(dirname "$FULL_PATH")
+    # git rev-parse may fail if not in a git repo (subrepo detection)
+    SUB_ROOT=$(git -C "$FILE_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$ACTUAL_ROOT")
+    if [ "$SUB_ROOT" != "$ACTUAL_ROOT" ]; then
+      # file is in a subrepo — run diff there
+      # realpath may fail on dangling paths — fallback to original
+      SUB_REL=$(realpath --relative-to="$SUB_ROOT" "$FULL_PATH" 2>/dev/null || echo "$file")
+      # git diff conditional: failure = "no changes" = correct semantics (P-8)
+      if git -C "$SUB_ROOT" diff --name-only HEAD -- "$SUB_REL" 2>/dev/null | grep -q .; then
+        UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
+      elif git -C "$SUB_ROOT" diff --cached --name-only -- "$SUB_REL" 2>/dev/null | grep -q .; then
+        UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
+      fi
+    else
+      # file exists: check for unstaged or staged changes
+      # git diff conditional: failure = "no changes" = correct semantics (P-8)
+      if git -C "$ACTUAL_ROOT" diff --name-only HEAD -- "$file" 2>/dev/null | grep -q .; then
+        UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
+      elif git -C "$ACTUAL_ROOT" diff --cached --name-only -- "$file" 2>/dev/null | grep -q .; then
+        UNCOMMITTED_FILES="${UNCOMMITTED_FILES}${file}\n"
+      fi
     fi
   else
     # file missing from disk: may have been deleted — still needs review (fail toward safety)
