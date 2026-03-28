@@ -36,7 +36,7 @@ If the requested agent is NOT in the list above:
 
 ### Step 0b: Infrastructure Check
 
-The refinement data layer (scripts/refinement/) is only installed in <workspace>.
+The refinement data layer (scripts/refinement/) is only installed in the root workspace.
 Other projects receive the /refine skill via .claude/ sync but lack the infrastructure.
 
 ```bash
@@ -44,7 +44,7 @@ SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-/workspaces}/scripts/refinement"
 ```
 
 If `$SCRIPTS_DIR` does not exist OR `verify-score.sh` is not present:
-- Respond: "NOTE: Refinement infrastructure not found at `$SCRIPTS_DIR`. The /refine skill exists in this project's `.claude/` but the data layer (`scripts/refinement/`) is not installed. Run /refine from the <workspace> workspace, or copy `scripts/refinement/` to this project."
+- Respond: "NOTE: Refinement infrastructure not found at `$SCRIPTS_DIR`. The /refine skill exists in this project's `.claude/` but the data layer (`scripts/refinement/`) is not installed. Run /refine from the root workspace, or copy `scripts/refinement/` to this project."
 - Do NOT create the `.refinement-active` marker.
 - Stop immediately.
 
