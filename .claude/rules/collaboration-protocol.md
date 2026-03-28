@@ -13,11 +13,10 @@
 
 - `worker-guard.sh` uses `git worktree list` + per-worktree `.claude/.heartbeat` mtime
 - Active if `.heartbeat` modified within last 10 minutes
-- `observe.sh` touches `.heartbeat` on every PreToolUse/PostToolUse
+- `heartbeat.sh` touches `.heartbeat` on every PreToolUse/PostToolUse
 - No registration/deregistration needed -- no stale files on crash
 
-**Key distinction**: `observations.jsonl` is centralized at `ACTUAL_ROOT` (shared).
-`.heartbeat` is per-worktree at `PROJECT_DIR` (isolated).
+**Key distinction**: `.heartbeat` is per-worktree at `PROJECT_DIR` (isolated).
 
 ## Worker Lifecycle
 

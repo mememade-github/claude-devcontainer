@@ -179,16 +179,7 @@ if [ -f "$UPDATE_SCRIPT" ]; then
   fi
 fi
 
-# 8. Instinct system status (use ACTUAL_ROOT — instincts are shared)
-OBS_FILE="$ACTUAL_ROOT/.claude/instincts/observations.jsonl"
-if [ -f "$OBS_FILE" ]; then
-  OBS_COUNT=$(wc -l < "$OBS_FILE" 2>/dev/null || echo "0")
-  # Optional: personal instincts directory may not exist (P-5)
-  INSTINCT_COUNT=$(find "$ACTUAL_ROOT/.claude/instincts/personal/" -name "*.md" 2>/dev/null | wc -l)
-  if [ "$OBS_COUNT" -gt 0 ] || [ "$INSTINCT_COUNT" -gt 0 ]; then
-    CONTEXT="${CONTEXT}Instinct system: ${OBS_COUNT} observations, ${INSTINCT_COUNT} personal instincts\n"
-  fi
-fi
+# 8. (removed: instinct system — autoresearch simplification 2026-03-28)
 
 # 9. Tool call counter reset (new session = fresh count, local to PROJECT_DIR)
 COUNTER_FILE="$PROJECT_DIR/.claude/.tool-call-counter"

@@ -16,7 +16,6 @@ case "$RELATIVE_PATH" in
   .claude/settings.json) TEST="bash .claude/tests/test-hooks.sh" ;;
   .claude/rules/*) TEST="bash .claude/tests/test-governance.sh" ;;
   .claude/skills/*) TEST="bash .claude/tests/test-governance.sh" ;;
-  .claude/instincts/*) TEST="bash .claude/tests/test-governance.sh" ;;
   CLAUDE.md) TEST="bash .claude/tests/test-governance.sh" ;;
   *) exit 0 ;;
 esac

@@ -70,7 +70,7 @@ All agents: `model: opus`, full tools, `maxTurns` 8-20.
 
 | Agent | maxTurns | Boundary | Skills | Color | MCP | Extra | Purpose |
 |-------|----------|----------|--------|-------|-----|-------|---------|
-| agent-evolver | 15 | — | verify, audit | magenta | — | background, memory | Session analysis, agent/rule/skill evolution |
+| agent-evolver | 15 | audit/report | verify, audit | magenta | — | background, memory | Standards compliance auditor |
 | architect | 20 | analyze/recommend | — | cyan | serena | — | Architecture patterns and design review |
 | build-error-resolver | 15 | — | verify, build-fix | red | — | — | Fix build/type errors with minimal diffs |
 | code-reviewer | 15 | review/report | verify | green | serena | hooks | Code review with severity framework |
