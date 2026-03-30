@@ -10,15 +10,6 @@ allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent
 
 Thin orchestrator: main agent drives the loop; all heavy work runs in fresh subagents per iteration.
 
-| autoresearch | Anthropic Harness | /refine v6 |
-|---|---|---|
-| `prepare.py` (immutable) | Sprint contract | **Verification Contract** (immutable, per-run) |
-| `val_bpb` (single scalar) | Evaluator scores | **contract_score** (0.0-1.0) |
-| `> run.log 2>&1` | Context resets | **verify_cmd > file** + fresh subagent per iteration |
-| same agent generates + evaluates | Generator ≠ Evaluator | **Fresh modifier ≠ fresh evaluator** |
-| `new < old` → keep | pass/fail | `new > prev_best` → KEEP |
-| `git reset` → discard | — | `git checkout -- .` → DISCARD |
-
 ## Arguments
 
 - `<task-description>`: What to improve (required)
