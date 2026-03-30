@@ -84,57 +84,38 @@ postStartCommand (매 시작 시)
 
 ## Agent System
 
-### Agents (6)
+### Agents (3)
 
-| Agent | Purpose | Auto-trigger |
-|-------|---------|-------------|
-| agent-evolver | Standards compliance auditor | On audit request |
-| build-error-resolver | Build errors + runtime debugging | On build failure |
-| code-reviewer | Code + security + DB review | After code changes |
-| e2e-runner | TDD + unit + E2E testing | On feature completion |
-| planner | Planning + architecture | On complex tasks |
+| Agent | Purpose | Invocation |
+|-------|---------|------------|
+| evaluator | Context-isolated quality evaluation | After code changes; within /refine loop |
+| planner | Planning + architecture | On-demand for design/architecture tasks |
 | wip-manager | Multi-session task tracker | When task spans sessions |
 
-### Hooks (23)
+### Hooks (9)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
 | session-start.sh | SessionStart | Git status, WIP resume, Known Issues |
-| block-destructive.sh | PreToolUse(Bash) | Block rm -rf, git push --force |
+| block-destructive.sh | PreToolUse(Bash) | Block destructive commands |
 | pre-commit-gate.sh | PreToolUse(Bash) | Require verification before commit |
 | pre-push-gate.sh | PreToolUse(Bash) | Git push safety gate |
 | heartbeat.sh | PreToolUse/PostToolUse | Per-worktree heartbeat for worker detection |
-| code-review-reminder.sh | PostToolUse(Edit/Write) | Track modified files |
-| suggest-compact.sh | PostToolUse(Edit/Write) | Suggest context compaction |
-| standards-reminder.sh | PostToolUse(Edit/Write) | Enforce standards-first for .claude/ changes |
-| error-tracker.sh | PostToolUseFailure | Track errors, enforce root cause fix |
-| stop-gate.sh | Stop | Block stop if review pending |
 | refinement-gate.sh | Stop | Block stop if refinement pending |
-| subagent-start-report.sh | SubagentStart | Log subagent start summary |
-| subagent-stop-report.sh | SubagentStop | Log subagent completion summary |
-| pre-compact.sh | PreCompact | Save critical state before compaction |
-| post-compact.sh | PostCompact | Restore context after compaction |
-| task-quality-gate.sh | TaskCompleted | Verify task completion quality |
-| user-prompt-submit.sh | UserPromptSubmit | User prompt preprocessing |
-| session-end.sh | SessionEnd | Session cleanup |
 | mark-verified.sh | Utility | Set verification marker |
-| review-complete.sh | Utility | Clear review marker |
-| claude-update-check.sh | Utility | Check for Claude updates |
 | worker-guard.sh | Utility | Multi-worker collision detection |
 | test-hooks.sh | Testing | Validate hooks |
 
-### Skills (/commands — 7)
+### Skills (/commands — 6)
 
 | Skill | Description |
 |-------|-------------|
 | /audit | Standards compliance audit |
-| /build-fix | Build error resolution |
 | /commit | Git commit with format |
 | /pr | Create pull request |
-| /refine | Deterministic refinement loop |
+| /refine | Autonomous iterative refinement loop |
 | /status | Workspace status |
 | /verify | Pre-commit verification |
-
 ## Troubleshooting
 
 | 문제 | 해결 |

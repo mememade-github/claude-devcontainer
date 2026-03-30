@@ -72,7 +72,6 @@ EXPECTED_TOOLS='["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "
 
 # Agents that require memory: project
 declare -A MEMORY_REQUIRED
-MEMORY_REQUIRED[agent-evolver]=1
 MEMORY_REQUIRED[wip-manager]=1
 
 declare -A CHECK_PASS CHECK_FAIL CHECK_DETAIL

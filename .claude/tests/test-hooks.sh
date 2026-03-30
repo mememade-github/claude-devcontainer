@@ -103,8 +103,6 @@ else
   result "FAIL" "HK-4" "all registered hook paths exist" "missing:${hk4_fails}"
 fi
 
-# HK-5, HK-6: removed (observe.sh removed — autoresearch simplification 2026-03-28)
-
 # --- HK-7: gate hooks use exit 2 ---
 GATE_HOOKS=("block-destructive.sh" "pre-commit-gate.sh" "pre-push-gate.sh")
 hk7_fails=""
@@ -302,7 +300,7 @@ else
 fi
 
 # --- HK-16: utility scripts have set -euo pipefail or set -eu ---
-UTILITY_SCRIPTS=("mark-verified.sh" "review-complete.sh")
+UTILITY_SCRIPTS=("mark-verified.sh")
 hk16_fails=""
 for us in "${UTILITY_SCRIPTS[@]}"; do
   uf="$HOOKS_DIR/$us"
@@ -317,10 +315,8 @@ else
   result "FAIL" "HK-16" "utility scripts have set -euo pipefail" "missing:${hk16_fails}"
 fi
 
-# HK-17: removed (observe.sh removed — autoresearch simplification 2026-03-28)
-
 # --- HK-18: helper scripts called from hooks are not silenced with || true ---
-HELPER_SCRIPTS=("mark-verified.sh" "review-complete.sh")
+HELPER_SCRIPTS=("mark-verified.sh")
 hk18_fails=""
 for hs in "${HELPER_SCRIPTS[@]}"; do
   for f in "$HOOKS_DIR"/*.sh; do
@@ -340,12 +336,12 @@ else
   result "FAIL" "HK-18" "helper script error propagation" "suppressed:${hk18_fails}"
 fi
 
-# --- HK-19: Stop hooks count (refinement-gate included) ---
+# --- HK-19: Stop hooks count (refinement-gate) ---
 STOP_COUNT=$(jq '.hooks.Stop[0].hooks | length' "$SETTINGS" 2>/dev/null || echo "0")
-if [ "$STOP_COUNT" -ge 2 ]; then
-  result "PASS" "HK-19" "Stop hooks count" "$STOP_COUNT hooks (incl. refinement-gate)"
+if [ "$STOP_COUNT" -ge 1 ]; then
+  result "PASS" "HK-19" "Stop hooks count" "$STOP_COUNT hook(s) (refinement-gate)"
 else
-  result "FAIL" "HK-19" "Stop hooks count" "expected >=2, got $STOP_COUNT"
+  result "FAIL" "HK-19" "Stop hooks count" "expected >=1, got $STOP_COUNT"
 fi
 
 # --- HK-20: refinement-gate.sh registered in settings.json ---
@@ -355,49 +351,9 @@ else
   result "FAIL" "HK-20" "refinement-gate registered in Stop hooks" "not found"
 fi
 
-# --- HK-21: subagent-start-report.sh functional test ---
-SUBSTART_HOOK="$HOOKS_DIR/subagent-start-report.sh"
-if [ -f "$SUBSTART_HOOK" ]; then
-  SUBSTART_OUT=$(echo '{"agent_type":"test-agent","agent_id":"test-123","session_id":"s1"}' | CLAUDE_PROJECT_DIR="$ROOT" bash "$SUBSTART_HOOK" 2>&1)
-  if grep -q 'SubagentStart.*agent=test-agent.*id=test-123' "$ACTUAL_ROOT/.claude/subagent.log" 2>/dev/null; then
-    result "PASS" "HK-21" "subagent-start-report functional" "logged agent_type+agent_id"
-  else
-    result "FAIL" "HK-21" "subagent-start-report functional" "log entry not found"
-  fi
-else
-  result "SKIP" "HK-21" "subagent-start-report functional" "file missing"
-fi
-
-# --- HK-22: session-end.sh functional test ---
-SESSEND_HOOK="$HOOKS_DIR/session-end.sh"
-if [ -f "$SESSEND_HOOK" ]; then
-  echo '{"source":"test","session_id":"test-sess"}' | CLAUDE_PROJECT_DIR="$ROOT" bash "$SESSEND_HOOK" 2>&1 >/dev/null
-  if [ -f "$ACTUAL_ROOT/.claude/session-metrics.log" ] && \
-     grep -q '"event":"session_end".*"session_id":"test-sess"' "$ACTUAL_ROOT/.claude/session-metrics.log" 2>/dev/null; then
-    result "PASS" "HK-22" "session-end functional" "JSONL entry written"
-  else
-    result "FAIL" "HK-22" "session-end functional" "log entry not found"
-  fi
-else
-  result "SKIP" "HK-22" "session-end functional" "file missing"
-fi
-
-# --- HK-23: user-prompt-submit.sh functional test (no active state) ---
-UPS_HOOK="$HOOKS_DIR/user-prompt-submit.sh"
-if [ -f "$UPS_HOOK" ]; then
-  UPS_OUT=$(echo '{}' | CLAUDE_PROJECT_DIR="$ROOT" bash "$UPS_HOOK" 2>&1)
-  if [ -z "$UPS_OUT" ]; then
-    result "PASS" "HK-23" "user-prompt-submit no-state" "silent when no active markers"
-  else
-    result "FAIL" "HK-23" "user-prompt-submit no-state" "unexpected output: $UPS_OUT"
-  fi
-else
-  result "SKIP" "HK-23" "user-prompt-submit no-state" "file missing"
-fi
-
 # --- HK-24: all hooks on disk are either registered or documented helpers ---
 REGISTERED_HOOKS=$(jq -r '.. | .command? // empty' "$SETTINGS" 2>/dev/null | grep -oE '[^/]+\.sh' | sort -u)
-HELPER_HOOKS="claude-update-check.sh worker-guard.sh mark-verified.sh review-complete.sh test-hooks.sh"
+HELPER_HOOKS="worker-guard.sh mark-verified.sh test-hooks.sh"
 hk24_fails=""
 for hook_file in "$HOOKS_DIR"/*.sh; do
   fname=$(basename "$hook_file")

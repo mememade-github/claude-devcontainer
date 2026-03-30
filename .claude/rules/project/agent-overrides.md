@@ -20,9 +20,7 @@ All agents have full tool access. Behavioral boundaries are enforced at the prom
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "WebFetch"]
 ```
 
-Each agent's prompt defines a **Behavioral Boundary** section specifying its operational scope (e.g., "you REVIEW and REPORT — you do not fix code"). This preserves full diagnostic capability while establishing clear role expectations.
-
-**Exception — agent-evolver**: May modify rules/ and skills/ directly, but agents/*.md changes must be proposed (not applied) to prevent self-referential modification loops.
+Each agent's prompt defines a **Behavioral Boundary** section specifying its operational scope (e.g., "you EVALUATE and SCORE — you do not modify code"). This preserves full diagnostic capability while establishing clear role expectations.
 
 ## Effort Policy
 
@@ -32,12 +30,9 @@ Global `effortLevel: high` in `settings.json`. Per-agent `effort` field not used
 
 | Team | Agents | Auto-trigger |
 |------|--------|-------------|
-| quality | code-reviewer, agent-evolver | After code changes; on audit request |
-| build | build-error-resolver | On build failure; on runtime error |
-| testing | e2e-runner | On feature completion; on regression check |
 | workflow | wip-manager | When task spans sessions |
 
-> planner is not team-bound — invoked on-demand for design/architecture tasks.
+> evaluator and planner are not team-bound — invoked on-demand.
 
 ## Frontmatter Reference
 
@@ -65,17 +60,16 @@ Global `effortLevel: high` in `settings.json`. Per-agent `effort` field not used
 
 > Verified by: `bash .claude/tests/test-agents.sh`
 
-## Agent Inventory (6)
+## Agent Inventory (3)
 
 All agents: `model: opus`, full tools, `maxTurns` 8-20.
 
 | Agent | maxTurns | Boundary | Skills | Color | MCP | Extra | Purpose |
 |-------|----------|----------|--------|-------|-----|-------|---------|
-| agent-evolver | 15 | audit/report | verify, audit | magenta | — | background, memory | Standards compliance auditor |
-| build-error-resolver | 15 | fix/minimal-diff | verify, build-fix | red | — | — | Build errors + runtime debugging |
-| code-reviewer | 15 | review/report | verify | green | serena | hooks | Code + security + DB review |
-| e2e-runner | 20 | test/write-tests | verify | green | — | — | TDD + unit + E2E testing |
+| evaluator | 12 | evaluate/score | — | yellow | — | — | Context-isolated quality evaluation |
 | planner | 20 | plan/document | — | cyan | serena, context7 | — | Planning + architecture |
 | wip-manager | 8 | wip/ dir only | status | blue | — | memory | Multi-session task tracker |
 
-*Last updated: 2026-03-30*
+> evaluator and planner are not team-bound — invoked on-demand.
+
+*Last updated: 2026-03-31*

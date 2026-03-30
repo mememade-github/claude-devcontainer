@@ -181,9 +181,7 @@ else
   result "FAIL" "KM-5" "all skills have SKILL.md with description" "issues:${km5_fails}"
 fi
 
-# KM-6..EV-5: removed (instinct/evolution system removed — autoresearch simplification 2026-03-28)
-
-# ===== TEAM PATTERNS (TP-1..2 + 4 SKIPs) =====
+# ===== TEAM PATTERNS =====
 
 # TP-1: all agents have model
 tp1_fails=""
@@ -215,22 +213,21 @@ else
   result "FAIL" "TP-2" "all agents have maxTurns" "missing:${tp2_fails}"
 fi
 
-# TP-3: team lifecycle hooks registered (SubagentStart + SubagentStop + TaskCompleted)
-tp3_missing=""
-for event in SubagentStart SubagentStop TaskCompleted; do
-  if ! python3 -c "
+# TP-3: refinement-gate registered in Stop hooks
+tp3_has_refine=$(python3 -c "
 import json
 with open('$CLAUDE_DIR/settings.json') as f:
     data = json.load(f)
-assert '$event' in data.get('hooks', {}), 'missing'
-" 2>/dev/null; then
-    tp3_missing+=" $event"
-  fi
-done
-if [ -z "$tp3_missing" ]; then
-  result "PASS" "TP-3" "team lifecycle enforcement" "SubagentStart+SubagentStop+TaskCompleted registered"
+hooks = data.get('hooks', {}).get('Stop', [{}])[0].get('hooks', [])
+for h in hooks:
+    if 'refinement-gate' in h.get('command', ''):
+        print('yes')
+        break
+" 2>/dev/null || echo "")
+if [ "$tp3_has_refine" = "yes" ]; then
+  result "PASS" "TP-3" "refinement-gate registered in Stop hooks"
 else
-  result "FAIL" "TP-3" "team lifecycle enforcement" "missing events:${tp3_missing}"
+  result "FAIL" "TP-3" "refinement-gate not found in Stop hooks"
 fi
 
 # TP-4: team sizing — all agents in agent-overrides.md exist as files
@@ -255,42 +252,22 @@ else
   result "FAIL" "TP-4" "team sizing compliance" "agent-overrides.md not found"
 fi
 
-# TP-5: task assignment — CLAUDE.md team table matches agent-overrides.md team table
+# TP-5: agent delegation — CLAUDE.md agent table matches agent-overrides.md inventory
 tp5_ok=true
 if [ -f "$CLAUDE_MD" ] && [ -f "$OVERRIDES" ]; then
-  # Extract team names from CLAUDE.md delegation table
-  claude_teams=$(grep -E '^\| (quality|build|testing|docs|workflow) ' "$CLAUDE_MD" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
-  # Extract team names from agent-overrides.md team table
-  override_teams=$(grep -E '^\| (quality|build|testing|docs|workflow) ' "$OVERRIDES" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
-  if [ "$claude_teams" = "$override_teams" ] && [ -n "$claude_teams" ]; then
-    team_count=$(echo "$claude_teams" | wc -l)
-    result "PASS" "TP-5" "task assignment protocol" "$team_count teams consistent across CLAUDE.md and overrides"
+  # Extract agent names from CLAUDE.md delegation table
+  claude_agents=$(grep -E '^\| (evaluator|planner|wip-manager) ' "$CLAUDE_MD" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
+  # Extract agent names from agent-overrides.md inventory table
+  override_agents=$(grep -E '^\| (evaluator|planner|wip-manager) ' "$OVERRIDES" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}' | sort)
+  if [ "$claude_agents" = "$override_agents" ] && [ -n "$claude_agents" ]; then
+    agent_count=$(echo "$claude_agents" | wc -l)
+    result "PASS" "TP-5" "agent delegation protocol" "$agent_count agents consistent across CLAUDE.md and overrides"
   else
     tp5_ok=false
-    result "FAIL" "TP-5" "task assignment protocol" "team tables diverge between CLAUDE.md and overrides"
+    result "FAIL" "TP-5" "agent delegation protocol" "agent tables diverge between CLAUDE.md and overrides"
   fi
 else
-  result "FAIL" "TP-5" "task assignment protocol" "CLAUDE.md or agent-overrides.md not found"
-fi
-
-# TP-6: communication protocol — SubagentStop hook has logging/reporting
-tp6_ok=true
-SUBAGENT_STOP_HOOK="$CLAUDE_DIR/hooks/subagent-stop-report.sh"
-if [ -f "$SUBAGENT_STOP_HOOK" ]; then
-  # Verify it logs agent info (agent_type, summary) and writes to log file
-  has_agent_type=false; has_log_write=false
-  grep -q 'agent_type' "$SUBAGENT_STOP_HOOK" && has_agent_type=true
-  grep -q 'LOG_FILE\|subagent\.log\|>>' "$SUBAGENT_STOP_HOOK" && has_log_write=true
-  if $has_agent_type && $has_log_write; then
-    result "PASS" "TP-6" "communication protocol" "SubagentStop logs agent_type + writes log"
-  else
-    missing=""
-    $has_agent_type || missing+=" agent_type"
-    $has_log_write || missing+=" log_write"
-    result "FAIL" "TP-6" "communication protocol" "missing:${missing}"
-  fi
-else
-  result "FAIL" "TP-6" "communication protocol" "subagent-stop-report.sh not found"
+  result "FAIL" "TP-5" "agent delegation protocol" "CLAUDE.md or agent-overrides.md not found"
 fi
 
 TOTAL=$((PASS + FAIL + SKIP))

@@ -66,92 +66,8 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-# --- Test 4: Code review reminder (products/ file) ---
-echo -n "4. Code review reminder (products/ file): "
-rm -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/products/example/src/main.py"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/code-review-reminder.sh" 2>&1)
-if echo "$RESULT" | grep -q "additionalContext" && [ -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE" ]; then
-  echo "PASS (marker created + context injected)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (result=$RESULT, marker exists=$([ -f $ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE ] && echo yes || echo no))"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 5: Code review reminder (non-products file) ---
-echo -n "5. Code review reminder (non-products file): "
-rm -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/scripts/test.sh"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/code-review-reminder.sh" 2>&1)
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ] && [ ! -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE" ]; then
-  echo "PASS (ignored)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 6: Stop gate (pending review exists) ---
-echo -n "6. Stop gate (pending review): "
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
-echo "products/example/src/main.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-RESULT=$(echo '{"stop_hook_active":false}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ] && echo "$RESULT" | grep -q '"decision".*"block"'; then
-  echo "PASS (blocked, exit=$EXIT_CODE)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (expected block with exit 0, got exit=$EXIT_CODE, output: $RESULT)"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 6b: Stop gate release path (review-complete.sh clears block) ---
-echo -n "6b. Stop gate release path: "
-echo "products/example/src/main.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-bash "$PROJECT_DIR/.claude/hooks/review-complete.sh" > /dev/null 2>&1
-RESULT=$(echo '{"stop_hook_active":false}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ] && [ -z "$RESULT" ]; then
-  echo "PASS (unblocked after review-complete.sh)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (expected allow after review-complete.sh, got exit=$EXIT_CODE, output: $RESULT)"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 7: Stop gate (no pending review) ---
-echo -n "7. Stop gate (no pending review): "
-rm -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-RESULT=$(echo '{"stop_hook_active":false}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ] && [ -z "$RESULT" ]; then
-  echo "PASS (allowed)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (expected allow)"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 8: Stop gate (loop prevention — 2nd attempt allows stop) ---
-echo -n "8. Stop gate (loop prevention): "
-echo "products/example/test.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
-# 1st call: blocks and creates block marker
-echo '{}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" > /dev/null 2>&1
-# 2nd call: sees fresh block marker → allows stop
-RESULT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
-EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ] && [ -z "$RESULT" ]; then
-  echo "PASS (allowed on 2nd attempt — loop prevention)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (2nd attempt should allow, got exit=$EXIT_CODE, output: $RESULT)"
-  FAIL=$((FAIL + 1))
-fi
-rm -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-
-# --- Test 9: Block destructive (rm -rf) ---
-echo -n "9. Block destructive (rm -rf /): "
+# --- Test 4: Block destructive (rm -rf) ---
+echo -n "4. Block destructive (rm -rf /): "
 EXIT_CODE=0
 RESULT=$(echo '{"tool_input":{"command":"rm -rf /"}}' | bash "$PROJECT_DIR/.claude/hooks/block-destructive.sh" 2>&1) || EXIT_CODE=$?
 if [ $EXIT_CODE -eq 2 ] && echo "$RESULT" | grep -qi "destructive\|blocked\|rm -rf"; then
@@ -162,15 +78,14 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-# --- Test 10: SessionStart Known Issues parsing ---
-echo -n "10. SessionStart Known Issues: "
+# --- Test 5: SessionStart Known Issues parsing ---
+echo -n "5. SessionStart Known Issues: "
 RESULT=$(echo '{"source":"startup"}' | bash "$PROJECT_DIR/.claude/hooks/session-start.sh" 2>&1)
-# session-start.sh reads from Claude auto-memory (same path used by session-start.sh)
 PROJECT_KEY=$(echo "$PROJECT_DIR" | tr "/" "-" | sed "s/^-//")
 AUTO_MEMORY_FILE="${HOME}/.claude/projects/${PROJECT_KEY}/memory/MEMORY.md"
+# Optional: MEMORY.md may not have ISSUE- entries (P-5)
 HAS_ISSUES=$(grep -l "ISSUE-" "$AUTO_MEMORY_FILE" 2>/dev/null | head -1)
 if [ -n "$HAS_ISSUES" ]; then
-  # MEMORY.md has Known Issues — session-start should report them
   if echo "$RESULT" | grep -q "ISSUE-"; then
     echo "PASS (Known Issues found in output)"
     PASS=$((PASS + 1))
@@ -179,15 +94,13 @@ if [ -n "$HAS_ISSUES" ]; then
     FAIL=$((FAIL + 1))
   fi
 else
-  # No Known Issues in MEMORY.md — expected for fresh template
   echo "PASS (no Known Issues — expected for base template)"
   PASS=$((PASS + 1))
 fi
 
-# --- Test 11: Utility scripts ---
-echo -n "11. mark-verified.sh: "
+# --- Test 6: mark-verified.sh ---
+echo -n "6. mark-verified.sh: "
 rm -f "$ACTUAL_ROOT/.claude/.last-verification.$BRANCH_SAFE"
-export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 bash "$PROJECT_DIR/.claude/hooks/mark-verified.sh" > /dev/null
 if [ -f "$ACTUAL_ROOT/.claude/.last-verification.$BRANCH_SAFE" ]; then
   echo "PASS (marker created)"
@@ -197,123 +110,42 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-echo -n "12. review-complete.sh: "
-echo "test.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-bash "$PROJECT_DIR/.claude/hooks/review-complete.sh" > /dev/null
-if [ ! -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE" ]; then
-  echo "PASS (marker cleared)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 13: Error tracker (tool failure) ---
-echo -n "13. Error tracker (tool failure): "
-rm -f "$PROJECT_DIR/.claude/.error-log"
-RESULT=$(echo '{"tool_name":"Bash","tool_input":{"command":"failing-cmd"},"error":"Command not found"}' | bash "$PROJECT_DIR/.claude/hooks/error-tracker.sh" 2>&1)
-if echo "$RESULT" | grep -q "additionalContext" && [ -f "$PROJECT_DIR/.claude/.error-log" ]; then
-  echo "PASS (error logged + context injected)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (result=$RESULT, log exists=$([ -f $PROJECT_DIR/.claude/.error-log ] && echo yes || echo no))"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 14: Error tracker (empty error) ---
-echo -n "14. Error tracker (empty error): "
-rm -f "$PROJECT_DIR/.claude/.error-log"
-RESULT=$(echo '{"tool_name":"Read","tool_input":{"file_path":"/nonexistent"}}' | bash "$PROJECT_DIR/.claude/hooks/error-tracker.sh" 2>&1)
-if echo "$RESULT" | grep -q "additionalContext" && [ -f "$PROJECT_DIR/.claude/.error-log" ]; then
-  echo "PASS (handles missing error field)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 15: Standards reminder (.claude/ file) ---
-echo -n "15. Standards reminder (.claude/ file): "
-RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/.claude/hooks/example.sh"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/standards-reminder.sh" 2>&1)
-if echo "$RESULT" | grep -q "additionalContext"; then
-  echo "PASS (context injected for .claude/ file)"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL (result=$RESULT)"
-  FAIL=$((FAIL + 1))
-fi
-
-# --- Test 16: Standards reminder (non-.claude file) ---
-echo -n "16. Standards reminder (non-.claude file): "
-RESULT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJECT_DIR"'/src/main.py"},"tool_response":{"success":true}}' | bash "$PROJECT_DIR/.claude/hooks/standards-reminder.sh" 2>&1)
+# --- Test 7: Refinement gate (no marker → allow) ---
+echo -n "7. Refinement gate (no marker): "
+rm -f "$ACTUAL_ROOT/.claude/.refinement-active"
+RESULT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/refinement-gate.sh" 2>&1)
 EXIT_CODE=$?
 if [ $EXIT_CODE -eq 0 ] && [ -z "$RESULT" ]; then
-  echo "PASS (ignored)"
+  echo "PASS (allowed)"
   PASS=$((PASS + 1))
 else
-  echo "FAIL"
+  echo "FAIL (expected allow, got exit=$EXIT_CODE)"
   FAIL=$((FAIL + 1))
 fi
 
-# --- Test 17: Stop hooks integration (independent markers) ---
-echo -n "17. Stop hooks integration (independent markers): "
-# Setup: both pending-review AND active refinement
-echo "products/example/test.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
+# --- Test 8: Refinement gate (active → block) ---
+echo -n "8. Refinement gate (active, below threshold): "
 rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
-mkdir -p "$ACTUAL_ROOT/.claude/skills/refine"
 REFINE_MARKER="$ACTUAL_ROOT/.claude/.refinement-active"
-echo '{"task_id":"test-integration","threshold":0.9,"max_iterations":5}' > "$REFINE_MARKER"
-# Create memory-ops.sh stub
-ORIG_MEMOPS=""
-if [ -f "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh" ]; then
-  ORIG_MEMOPS=$(cat "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh")
-fi
-cat > "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh" <<'STUB'
-#!/bin/bash
-case "$1" in
-  best)  echo '{"score":0.3}' ;;
-  count) echo "1" ;;
-esac
-STUB
-chmod +x "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh"
+echo '{"task_id":"test-gate","threshold":0.9,"max_iterations":5}' > "$REFINE_MARKER"
+mkdir -p "$ACTUAL_ROOT/.claude/agent-memory/refinement/attempts"
+echo '{"score":0.3,"result":"Baseline","feedback":"initial"}' > "$ACTUAL_ROOT/.claude/agent-memory/refinement/attempts/test-gate.jsonl"
 
-# Run both Stop hooks sequentially (mimics real Stop event)
-STOP_OUT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
-REFINE_OUT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/refinement-gate.sh" 2>&1)
-
-# Both should block independently
-STOP_BLOCKED=false
-REFINE_BLOCKED=false
-echo "$STOP_OUT" | grep -q '"decision".*"block"' && STOP_BLOCKED=true
-echo "$REFINE_OUT" | grep -q '"decision".*"block"' && REFINE_BLOCKED=true
-
-# Verify independent markers exist
-REVIEW_MARKER_EXISTS=false
-REFINE_MARKER_EXISTS=false
-[ -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE" ] && REVIEW_MARKER_EXISTS=true
-[ -f "$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE" ] && REFINE_MARKER_EXISTS=true
-
-if $STOP_BLOCKED && $REFINE_BLOCKED && $REVIEW_MARKER_EXISTS && $REFINE_MARKER_EXISTS; then
-  echo "PASS (both hooks block independently with separate markers)"
+RESULT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/refinement-gate.sh" 2>&1)
+if echo "$RESULT" | grep -q '"decision".*"block"'; then
+  echo "PASS (blocked)"
   PASS=$((PASS + 1))
 else
-  echo "FAIL (stop=$STOP_BLOCKED refine=$REFINE_BLOCKED review_marker=$REVIEW_MARKER_EXISTS refine_marker=$REFINE_MARKER_EXISTS)"
+  echo "FAIL (expected block, got: $RESULT)"
   FAIL=$((FAIL + 1))
 fi
 
-# Restore memory-ops.sh
-if [ -n "$ORIG_MEMOPS" ]; then
-  echo "$ORIG_MEMOPS" > "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh"
-fi
+# Restore
+rm -f "$ACTUAL_ROOT/.claude/agent-memory/refinement/attempts/test-gate.jsonl"
 rm -f "$REFINE_MARKER"
+rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
 
 # --- Cleanup ---
-rm -f "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
-rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-any.$BRANCH_SAFE"
-rm -f "$PROJECT_DIR/.claude/.error-log"
 touch "$ACTUAL_ROOT/.claude/.last-verification.$BRANCH_SAFE"
 
 echo ""
