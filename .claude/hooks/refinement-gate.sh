@@ -9,24 +9,17 @@
 
 INPUT=$(cat)
 
-# --- Resolve actual project root (worktree → original repo root) ---
+# --- Resolve project dir ---
+# Refinement markers are per-session (per-worktree), so use PROJECT_DIR directly.
+# Unlike verification markers (shared via ACTUAL_ROOT in pre-commit-gate.sh),
+# .refinement-active and attempts are created by /refine relative to PROJECT_DIR.
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-if command -v git &>/dev/null; then
-  GIT_COMMON=$(git -C "$PROJECT_DIR" rev-parse --git-common-dir 2>/dev/null)
-  if [ -n "$GIT_COMMON" ] && [ "$GIT_COMMON" != ".git" ]; then
-    ACTUAL_ROOT=$(dirname "$GIT_COMMON")
-  else
-    ACTUAL_ROOT="$PROJECT_DIR"
-  fi
-else
-  ACTUAL_ROOT="$PROJECT_DIR"
-fi
 
 BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 BRANCH_SAFE=$(echo "$BRANCH" | tr '/' '-')
 
 # --- Loop prevention: if already blocked once recently, allow stop ---
-BLOCK_MARKER="$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
+BLOCK_MARKER="$PROJECT_DIR/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
 if [ -f "$BLOCK_MARKER" ]; then
   BLOCK_MTIME=$(stat -c %Y "$BLOCK_MARKER" 2>/dev/null) || {
     rm -f "$BLOCK_MARKER"
@@ -41,7 +34,7 @@ if [ -f "$BLOCK_MARKER" ]; then
 fi
 
 # --- Check refinement marker ---
-REFINE_MARKER="$ACTUAL_ROOT/.claude/.refinement-active"
+REFINE_MARKER="$PROJECT_DIR/.claude/.refinement-active"
 
 # Symlink rejection (security)
 if [ -L "$REFINE_MARKER" ]; then
@@ -66,7 +59,7 @@ if [ -z "$TASK_ID" ]; then
 fi
 
 # --- Check current state (inline JSONL — no external scripts) ---
-ATTEMPTS_FILE="$ACTUAL_ROOT/.claude/agent-memory/refinement/attempts/${TASK_ID}.jsonl"
+ATTEMPTS_FILE="$PROJECT_DIR/.claude/agent-memory/refinement/attempts/${TASK_ID}.jsonl"
 if [ ! -f "$ATTEMPTS_FILE" ]; then
   # No attempts recorded → allow stop
   exit 0
