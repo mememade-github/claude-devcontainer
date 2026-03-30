@@ -1,12 +1,16 @@
-# default.yml — Immutable Evaluation Rubric (prepare.py analog)
+# default.yml — Rubric Fallback for non-objective evaluation
 #
-# This rubric is IMMUTABLE during refinement — the agent cannot modify
-# how it is evaluated, just as autoresearch's prepare.py cannot be changed.
+# ROLE IN v4: This rubric is used ONLY when Discovery Phase cannot find
+# or generate any objective metric (Contract.mode == "rubric").
+# For most projects with tests/build/lint, the Contract's objective
+# metric takes priority and this file is not used.
 #
-# Each dimension has 5 anchor levels: 0.0, 0.25, 0.5, 0.75, 1.0
-# NO interpolation — score must be exactly one of these values.
-# Every score MUST cite specific evidence (tool output, file:line, diff hunk).
-# No evidence = 0.0 for that dimension.
+# When active (rubric fallback mode):
+# - IMMUTABLE during refinement — the agent cannot modify evaluation criteria
+# - Each dimension has 5 anchor levels: 0.0, 0.25, 0.5, 0.75, 1.0
+# - NO interpolation — score must be exactly one of these values
+# - Every score MUST cite specific evidence (tool output, file:line, diff hunk)
+# - No evidence = 0.0 for that dimension
 
 rubric:
   name: universal
