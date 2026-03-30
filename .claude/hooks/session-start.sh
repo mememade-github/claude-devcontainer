@@ -113,19 +113,7 @@ for marker in "$ACTUAL_ROOT"/.claude/.last-verification.*; do
   fi
 done
 
-# 6. Session collaboration guard (detect other active sessions via heartbeat)
-# use PROJECT_DIR (not ACTUAL_ROOT) — hooks are code, not shared data
-WORKER_GUARD="$PROJECT_DIR/.claude/hooks/worker-guard.sh"
-if [ -f "$WORKER_GUARD" ]; then
-  WORKER_INFO=$(bash "$WORKER_GUARD" 2>&1) || {
-    echo "WARN: worker-guard failed" >&2
-  }
-  if [ -n "$WORKER_INFO" ]; then
-    CONTEXT="${CONTEXT}${WORKER_INFO}\n"
-  fi
-fi
-
-# 7. Environment info (auto-detected)
+# 6. Environment info (auto-detected)
 if [ -f /.dockerenv ]; then
   # Optional: os-release may not exist (P-5)
   OS_INFO=$(. /etc/os-release 2>/dev/null && echo "$NAME $VERSION_ID" || echo "Linux")

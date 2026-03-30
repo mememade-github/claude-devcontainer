@@ -39,25 +39,13 @@ done
 ```
 Flag any repo with unpushed commits.
 
-## 3. Active Sessions
-Detect active sessions via per-worktree `.heartbeat` (consistent with worker-guard.sh and collaboration-protocol.md):
+## 3. Active Worktrees
+List git worktrees (Claude Code `--worktree` creates these automatically):
 ```bash
-NOW=$(date +%s)
-TIMEOUT=600
 git -C "$WORKSPACE_ROOT" worktree list 2>/dev/null | while IFS= read -r line; do
   WT_PATH=$(echo "$line" | awk '{print $1}')
   WT_BRANCH=$(echo "$line" | sed -n 's/.*\[\(.*\)\]/\1/p')
-  HB="$WT_PATH/.claude/.heartbeat"
-  if [ -f "$HB" ]; then
-    AGE=$(( NOW - $(stat -c '%Y' "$HB" 2>/dev/null || echo 0) ))
-    if [ "$AGE" -lt "$TIMEOUT" ]; then
-      echo "  ${WT_BRANCH} (${WT_PATH}) — active ${AGE}s ago"
-    else
-      echo "  ${WT_BRANCH} (${WT_PATH}) — inactive (${AGE}s)"
-    fi
-  else
-    echo "  ${WT_BRANCH} (${WT_PATH}) — no heartbeat"
-  fi
+  echo "  ${WT_BRANCH} (${WT_PATH})"
 done
 ```
 

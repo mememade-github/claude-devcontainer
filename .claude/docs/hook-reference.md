@@ -31,9 +31,9 @@
 
 ---
 
-## 9 Hook Scripts
+## 7 Hook Scripts
 
-### settings.json Event Mapping (6 direct registrations)
+### settings.json Event Mapping (4 direct registrations)
 
 | Event | Matcher | Hook | Timeout | Category |
 |-------|---------|------|---------|----------|
@@ -41,15 +41,12 @@
 | PreToolUse | Bash | block-destructive.sh | 5s | Gate |
 | PreToolUse | Bash | pre-commit-gate.sh | 5s | Gate |
 | PreToolUse | Bash | pre-push-gate.sh | 5s | Gate |
-| PreToolUse | (all) | heartbeat.sh | 1s | Session detection |
-| PostToolUse | (all) | heartbeat.sh | 1s | Session detection |
 | Stop | (all) | refinement-gate.sh | 10s | Gate |
 
 ### Utility Scripts (2) + Test (1)
 
 | Hook | Called By | Purpose |
 |------|----------|---------|
-| worker-guard.sh | session-start.sh | Detect other active sessions via worktree heartbeat |
 | mark-verified.sh | developer (after verification) | Create verification timestamp marker |
 | test-hooks.sh | (test suite) | Automated hook testing |
 
@@ -72,12 +69,6 @@
 |------|-------|--------|
 | session-start.sh | SessionStart | Inject git branch, WIP tasks, env status |
 
-### Session Detection (1)
-
-| Hook | Event | Action |
-|------|-------|--------|
-| heartbeat.sh | PreToolUse + PostToolUse | Touch .heartbeat for worker-guard detection |
-
 ---
 
 ## Permitted `2>/dev/null` Patterns (P-1 through P-5)
@@ -89,18 +80,6 @@ Each usage MUST have an adjacent comment stating intent.
 - **P-3**: Honest uncertainty fallback (`|| echo "unknown"`)
 - **P-4**: Cross-platform compatibility (stat -c/-f chain)
 - **P-5**: Optional resource probing (`ls ... 2>/dev/null`)
-
----
-
-## Collaboration Details
-
-### Session-Start Integration
-
-At session start, `worker-guard` hook automatically:
-1. Enumerates all worktrees via `git worktree list`
-2. Checks each worktree's `.heartbeat` mtime for activity
-3. Reports active sessions (within 10-minute heartbeat window)
-4. Warns if current session's worktree branch diverges from main
 
 ---
 
