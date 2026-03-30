@@ -38,26 +38,6 @@
             "if": "Bash(git push*)"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/heartbeat.sh",
-            "timeout": 1
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/heartbeat.sh",
-            "timeout": 1
-          }
-        ]
       }
     ],
     "Stop": [

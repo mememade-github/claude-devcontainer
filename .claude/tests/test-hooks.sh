@@ -193,12 +193,10 @@ else
 fi
 
 # --- HK-11: no 2>/dev/null on data writes (printf>>, echo>>, touch) ---
-# Exempt: heartbeat.sh — non-blocking by design (must never block session)
 hk11_fails=""
 for f in "$HOOKS_DIR"/*.sh; do
   [ -f "$f" ] || continue
   fname=$(basename "$f")
-  [ "$fname" = "heartbeat.sh" ] && continue
   if grep -vE '^\s*#' "$f" | grep -E '(printf|echo)\s.*>>' | grep -q '2>/dev/null'; then
     hk11_fails+=" $fname"
   fi
@@ -213,12 +211,10 @@ else
 fi
 
 # --- HK-12: no || true on writes ---
-# Exempt: heartbeat.sh — non-blocking by design (must never block session)
 hk12_fails=""
 for f in "$HOOKS_DIR"/*.sh; do
   [ -f "$f" ] || continue
   fname=$(basename "$f")
-  [ "$fname" = "heartbeat.sh" ] && continue
   if grep -vE '^\s*#' "$f" | grep -E '(printf|echo|touch|>>)' | grep -q '||[[:space:]]*true'; then
     hk12_fails+=" $fname"
   fi
@@ -353,7 +349,7 @@ fi
 
 # --- HK-24: all hooks on disk are either registered or documented helpers ---
 REGISTERED_HOOKS=$(jq -r '.. | .command? // empty' "$SETTINGS" 2>/dev/null | grep -oE '[^/]+\.sh' | sort -u)
-HELPER_HOOKS="worker-guard.sh mark-verified.sh test-hooks.sh"
+HELPER_HOOKS="mark-verified.sh test-hooks.sh"
 hk24_fails=""
 for hook_file in "$HOOKS_DIR"/*.sh; do
   fname=$(basename "$hook_file")
