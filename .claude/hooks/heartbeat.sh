@@ -1,6 +1,5 @@
 #!/bin/bash
 # Per-worktree heartbeat for session detection (worker-guard.sh reads this).
-# Replaces observe.sh — observation/instinct pipeline removed (autoresearch simplification).
 # Called by PreToolUse/PostToolUse hooks. MUST complete in < 1 second.
 
 _HEARTBEAT="${CLAUDE_PROJECT_DIR:-.}/.claude/.heartbeat"

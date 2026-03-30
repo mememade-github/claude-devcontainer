@@ -1,6 +1,6 @@
 ---
 name: refine
-description: Autonomous iterative refinement loop — autoresearch pattern with Discovery Phase
+description: Autonomous iterative refinement loop — thin orchestrator with fresh-context agents
 argument-hint: "<task-description> [--max-iter N] [--threshold 0.85] [--project PATH] [--agent TYPE]"
 user-invocable: true
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent
@@ -8,19 +8,16 @@ allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent
 
 # /refine — Autonomous Iterative Refinement Loop
 
-Autoresearch pattern: discover → modify → verify → keep/discard → repeat.
+Thin orchestrator: main agent drives the loop; all heavy work runs in fresh subagents per iteration.
 
-Core mapping from [autoresearch](https://github.com/karpathy/autoresearch):
-
-| autoresearch | /refine v3 | /refine v4 |
+| autoresearch | Anthropic Harness | /refine v6 |
 |---|---|---|
-| agent reads `prepare.py` + `train.py` | — | **Discovery Phase** (reads project → builds Contract) |
-| `prepare.py` (immutable evaluation) | `rubrics/default.yml` (rubric) | **Verification Contract** (immutable, per-run) |
-| `val_bpb` (single scalar metric) | Opus 4-dim weighted score | **Contract metric** (test pass rate, error count, etc.) |
-| `uv run train.py > run.log 2>&1` | Claude runs tools | **Contract.verify_cmd** execution |
-| `grep "^val_bpb:" run.log` | Claude interprets evidence | **Contract.parse** — mechanical extraction, no judgment |
-| `new < old` → keep | `new > prev_best` → keep | `new > prev_best` → keep (unchanged) |
-| `git reset` → discard | `git checkout -- .` → discard | `git checkout -- .` → discard (unchanged) |
+| `prepare.py` (immutable) | Sprint contract | **Verification Contract** (immutable, per-run) |
+| `val_bpb` (single scalar) | Evaluator scores | **contract_score** (0.0-1.0) |
+| `> run.log 2>&1` | Context resets | **verify_cmd > file** + fresh subagent per iteration |
+| same agent generates + evaluates | Generator ≠ Evaluator | **Fresh modifier ≠ fresh evaluator** |
+| `new < old` → keep | pass/fail | `new > prev_best` → KEEP |
+| `git reset` → discard | — | `git checkout -- .` → DISCARD |
 
 ## Arguments
 
@@ -28,7 +25,24 @@ Core mapping from [autoresearch](https://github.com/karpathy/autoresearch):
 - `--max-iter N`: Maximum iterations (default: 10)
 - `--threshold T`: Target score 0.0-1.0 (default: 0.85)
 - `--project PATH`: Project path (default: CLAUDE_PROJECT_DIR)
-- `--agent TYPE`: Agent to spawn for code changes (default: none — main agent acts directly)
+- `--agent TYPE`: Agent type for modifications (default: general-purpose)
+
+## State
+
+Attempt history in a single JSONL file — no external scripts:
+
+```
+.claude/agent-memory/refinement/attempts/$TASK_ID.jsonl
+```
+
+Each line: `{"score":0.8,"result":"KEEP: added validation","feedback":"fix edge cases"}`
+
+Three inline operations cover all needs:
+```bash
+# Record:  echo '{"score":...,"result":"...","feedback":"..."}' >> $ATTEMPTS
+# Best:    jq -s 'sort_by(.score)|last|.score//0' $ATTEMPTS
+# Count:   wc -l < $ATTEMPTS
+```
 
 ## Protocol
 
@@ -39,59 +53,43 @@ TASK_ID="refine-$(date +%Y%m%d-%H%M%S)"
 PROJECT="${PROJECT:-$CLAUDE_PROJECT_DIR}"
 THRESHOLD="${THRESHOLD:-0.85}"
 MAX_ITER="${MAX_ITER:-10}"
-REFINE_DIR="${PROJECT}/.claude/skills/refine"
+ATTEMPTS="$PROJECT/.claude/agent-memory/refinement/attempts/$TASK_ID.jsonl"
+mkdir -p "$(dirname "$ATTEMPTS")"
 ```
 
-### Step 1: Discover (zero-memory ground-truth discovery)
+### Step 1: Discover (zero-memory ground-truth)
 
-Read the project and construct a Verification Contract. This is the autoresearch equivalent of the agent reading `prepare.py` and `train.py` to understand the experiment setup.
+Read the project and construct a Verification Contract.
 
-**Every /refine run rediscovers from scratch. No cached config. No --verify flag. Ground truth only.**
+**Every /refine run rediscovers from scratch. No cached config. Ground truth only.**
 
 1. **Read the project** — Glob, Read, Grep to understand structure.
-2. **Find verification infrastructure** — use your intelligence to discover:
-   - Test suites (any framework, any language)
-   - Build systems (any tool)
-   - Linters, type checkers
-   - Existing verification scripts
-   - Any command that produces objective, repeatable output
+2. **Find verification infrastructure**:
+   - Test suites, build systems, linters, type checkers, verification scripts
 3. **Construct the Verification Contract**:
 
 ```json
 {
-  "mode": "objective|generated|rubric",
+  "mode": "objective|tool-augmented|calibrated",
   "verify_cmd": "<command that produces measurable output>",
-  "parse": "<how to extract the metric from verify_cmd output>",
-  "metric": "<metric name — e.g. pass_rate, error_count, exit_code>",
+  "parse": "<how to extract the metric>",
+  "metric": "<metric name>",
   "direction": "higher|lower|zero",
-  "discovery_log": "<what you found and why you chose this>"
+  "checks": ["<optional: {desc, tool, cmd, expect} for tool-augmented>"],
+  "discovery_log": "<what you found and why>"
 }
 ```
 
-**Contract modes**:
+| Mode | When | Evaluator | Scoring |
+|---|---|---|---|
+| `objective` | Tests/build/lint exist | None | verify_cmd → parse → number |
+| `tool-augmented` | Checks definable or no infra | evaluator subagent | checks[] + diff explore → score |
+| `calibrated` | No objective metric (last resort) | evaluator subagent | `rubrics/default.yml` anchors |
 
-| Mode | When | How score is produced |
-|---|---|---|
-| `objective` | Project has tests/build/lint | verify_cmd output → mechanical parsing → number |
-| `generated` | No infra exists; agent writes tests/scripts | Same as objective, but verification was created in this step |
-| `rubric` | No objective metric possible (last resort) | rubrics/default.yml 4-dim scoring (v3 behavior) |
-
-4. **If no verification infrastructure exists** (generated mode):
-   - Write tests or a verification script appropriate for the task
-   - Tests MUST fail on at least one case in the current state (TDD RED principle)
-   - These tests become the Contract's verify_cmd
-   - Once written, the tests are FROZEN — treat them as part of the Contract
-
-5. **If no objective metric is possible** (rubric fallback):
-   - Use `rubrics/default.yml` with v3 evaluation protocol
-   - This is the last resort, not the default
-
-6. **Validate the Contract**:
-   - Run `verify_cmd` once. It must produce parseable output.
-   - The baseline score must NOT be perfect. If it is, the Contract cannot distinguish improvement.
-   - If validation fails, reconstruct the Contract.
-
-7. **Freeze the Contract** — write to `.refinement-active` marker:
+4. **No infrastructure?** (tool-augmented): write tests that FAIL in current state (TDD RED).
+5. **No objective metric?** (calibrated): use `rubrics/default.yml` — last resort only.
+6. **Validate**: run verify_cmd once. Must produce parseable output. Baseline must NOT be perfect.
+7. **Freeze** into `.refinement-active`:
 
 ```bash
 cat > .claude/.refinement-active <<MARKER
@@ -100,131 +98,133 @@ cat > .claude/.refinement-active <<MARKER
   "threshold": $THRESHOLD,
   "max_iterations": $MAX_ITER,
   "started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "contract": {
-    "mode": "<mode>",
-    "verify_cmd": "<command>",
-    "parse": "<extraction method>",
-    "metric": "<name>",
-    "direction": "<higher|lower|zero>"
-  }
+  "contract": { ... }
 }
 MARKER
 ```
 
-**After this point, the Contract is IMMUTABLE for the rest of the loop.**
+**Contract is IMMUTABLE after this point.**
 
-### Step 2: Baseline (attempt 0)
+### Step 2: Baseline
 
-Run the Contract to establish the baseline score.
-
-1. **Execute**: `bash -c "<Contract.verify_cmd>" 2>&1`
-2. **Parse**: Extract the metric using Contract.parse
-3. **Normalize**: Convert to a 0.0-1.0 score:
-   - `pass_rate`: passed / total (e.g., "8 passed, 2 failed" → 0.8)
-   - `error_count`: 1.0 - min(errors / baseline_errors, 1.0) (fewer errors = higher score)
-   - `exit_code`: 1.0 if 0, else 0.0
-   - Custom: define normalization in Contract.parse
-4. **Record**:
+Redirect output to file — autoresearch `> run.log 2>&1` pattern:
 
 ```bash
-bash "$REFINE_DIR/memory-ops.sh" add \
-  --task "$TASK_ID" --agent "baseline" --score "$BASELINE_SCORE" \
-  --metric-type "<mode>" --metric-raw "<raw verify_cmd output>" \
-  --result "Baseline" --feedback "<one-line: what the metric shows>"
+bash -c "<Contract.verify_cmd>" > .claude/.refine-output 2>&1
+SCORE=<parse from .claude/.refine-output — only the number enters context>
+echo "{\"score\":$SCORE,\"result\":\"Baseline\",\"feedback\":\"initial\"}" >> "$ATTEMPTS"
 ```
 
-### Step 3: Modify
+### Step 3: Modify (fresh subagent — context reset)
 
-**If `--agent` specified**: Spawn the agent with the task description + trajectory context.
-**If no `--agent`** (default): Act directly — read code, make changes with Edit/Write.
+**Always spawn a fresh agent.** The main agent never reads code or sees edits.
 
-After modification, `git add` changed files. Do NOT commit yet — commit only on keep.
+Spawn Agent with prompt:
+```
+Task: <original task description>
+Contract: mode=<mode>, metric=<metric>, direction=<direction>
+Previous suggestion: <SUGGESTION from last Step 4, or "first iteration">
+Attempts file: <$ATTEMPTS path>
 
-### Step 4: Evaluate
+Read the attempts file to see previous scores and feedback.
+Avoid approaches that scored low. Build on approaches that scored high.
+Make targeted changes. Run `git add` on changed files.
+Return ONE LINE: what you changed.
+```
 
-Run the Contract again. This is the `grep "^val_bpb:" run.log` equivalent.
+If `--agent TYPE` specified, spawn that agent type instead of general-purpose.
 
-**For objective/generated mode** (no agent judgment):
-1. Execute: `bash -c "<Contract.verify_cmd>" 2>&1`
-2. Parse: Same method as baseline
-3. Normalize: Same method as baseline
-4. The number IS the score. No interpretation. No judgment.
+The modifier's 1-line return is the only thing added to the main context.
 
-**For rubric mode** (fallback only):
-1. Run verification tools appropriate for the project
-2. Read `cat "$REFINE_DIR/rubrics/default.yml"`
-3. Score each dimension (0.0, 0.25, 0.5, 0.75, 1.0) citing evidence
-4. Weighted average → score
+### Step 4: Evaluate (output to file — score only enters context)
 
-### Step 5: Keep or Discard (binary decision)
+**objective mode** (no evaluator):
+```bash
+bash -c "<Contract.verify_cmd>" > .claude/.refine-output 2>&1
+SCORE=<parse from .claude/.refine-output>
+SUGGESTION=""
+# Parse failure → SCORE=0
+```
+
+**tool-augmented / calibrated mode** (evaluator subagent):
+
+Spawn the `evaluator` agent with ONLY:
+- Frozen Contract JSON
+- `git diff --cached` (or `git diff`)
+- Calibration anchors (calibrated mode only)
+- Instruction: "Read `$ATTEMPTS` for previous scores."
+
+The evaluator writes full report to `.claude/.refine-eval.json` and returns ONLY:
+```
+{"score": 0.85, "suggestion": "one line of feedback"}
+```
+
+Parse: `SCORE` + `SUGGESTION` from the evaluator's return.
+
+**Context isolation** — evaluator MUST NOT receive:
+- The original `/refine` task description
+- The modifier's reasoning
+- Why changes were made
+
+### Step 5: Keep or Discard
 
 ```bash
-PREV_BEST=$(bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID" | jq -r '.score // "0"')
+PREV_BEST=$(jq -s 'sort_by(.score)|last|.score//0' "$ATTEMPTS" 2>/dev/null || echo "0")
 ```
 
-| Condition | Action | autoresearch analog |
-|-----------|--------|---------------------|
-| `SCORE > PREV_BEST` | **KEEP** — `git commit -m "refine: $TASK_ID iteration $N — score $SCORE"` | `val_bpb` improved → keep commit |
-| `SCORE <= PREV_BEST` | **DISCARD** — `git checkout -- .` | `val_bpb` worse → `git reset` |
-| `SCORE >= THRESHOLD` | **ACCEPT** — exit loop | N/A (autoresearch runs forever) |
+| Condition | Action |
+|---|---|
+| `SCORE > PREV_BEST` | **KEEP**: `git commit -m "refine: $TASK_ID iteration $N — score $SCORE"` |
+| `SCORE <= PREV_BEST` | **DISCARD**: `git checkout -- .` |
+| `SCORE >= THRESHOLD` | **ACCEPT**: exit loop |
 
 ### Step 6: Record
 
 ```bash
-bash "$REFINE_DIR/memory-ops.sh" add \
-  --task "$TASK_ID" --agent "${AGENT:-self}" --score "$SCORE" \
-  --metric-type "<mode>" --metric-raw "<raw output>" \
-  --result "<one-line: what changed, KEEP/DISCARD>" \
-  --feedback "<metric summary>"
+echo "{\"score\":$SCORE,\"result\":\"<KEEP|DISCARD>: $SUMMARY\",\"feedback\":\"$SUGGESTION\"}" >> "$ATTEMPTS"
 ```
 
 ### Step 7: Check Termination
 
 ```bash
-ITERATION=$(bash "$REFINE_DIR/memory-ops.sh" count --task "$TASK_ID")
+ITERATION=$(wc -l < "$ATTEMPTS" 2>/dev/null || echo "0")
 ```
 
 | Condition | Action |
-|-----------|--------|
-| `SCORE >= THRESHOLD` | **ACCEPT** — remove marker, report success |
-| `ITERATION >= MAX_ITER` | **STOP** — remove marker, report best result |
-| Otherwise | Continue to Step 8 |
+|---|---|
+| `SCORE >= THRESHOLD` | **ACCEPT** — `rm -f .claude/.refinement-active`, report |
+| `ITERATION >= MAX_ITER` | **STOP** — `rm -f .claude/.refinement-active`, report best |
+| Otherwise | Continue to Step 3 |
 
-On ACCEPT or STOP:
-```bash
-rm -f .claude/.refinement-active
-bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID"
-```
+On exit: `jq -s 'sort_by(.score)|last' "$ATTEMPTS"`
 
-### Step 8: Trajectory + Next Iteration
+### Next Iteration
 
-```bash
-TRAJECTORY=$(bash "$REFINE_DIR/trajectory.sh" --task "$TASK_ID" --max 5)
-```
+Return to **Step 3** with:
+- Same task description
+- Updated SUGGESTION from latest Step 4
+- Modifier reads $ATTEMPTS itself in its fresh context
 
-Return to **Step 3** with trajectory as context. Use it to:
-- Avoid repeating failed approaches (DISCARD entries)
-- Build on successful attempts (KEEP entries)
-- Focus on what the metric reveals as weakest
-
-**Continue iterating. Do not ask for permission to continue.**
+**Continue iterating. Do not ask for permission.**
 
 ## Discovery Protocol
 
-These rules govern Step 1 (Discover). They replace v3's Evaluation Protocol.
-
-1. **Zero-memory** — every /refine run rediscovers from scratch. Do not rely on prior sessions, config files, or cached knowledge. Read the project's current state as ground truth.
-2. **Contract is immutable** — once frozen (end of Step 1), verify_cmd, parse, metric, and direction cannot be modified for the rest of the loop. This is the autoresearch `prepare.py` principle.
-3. **Metric over judgment** — if an objective metric exists (tests, build, lint), use it. Agent judgment (rubric scoring) is the last resort, not the default.
-4. **Baseline must not be perfect** — if the baseline score is already 1.0 or at threshold, the Contract cannot distinguish improvement. Reconstruct with a more discriminating metric.
-5. **Generated tests must fail** — when writing tests in `generated` mode, at least one test must fail in the current state (TDD RED). Tests that all pass cannot drive improvement.
-6. **Parse failure = score 0** — if verify_cmd output cannot be parsed into a number, treat as crash (score 0, DISCARD). Same as autoresearch treating OOM as failure.
+1. **Zero-memory** — rediscover from scratch every run
+2. **Contract is immutable** — once frozen, no modification
+3. **Metric over judgment** — objective if available; calibrated is last resort
+4. **Baseline must not be perfect** — Contract must distinguish improvement
+5. **Generated tests must fail** — TDD RED principle
+6. **Parse failure = score 0** — treat as crash, DISCARD
 
 ## Design Principles
 
-1. **autoresearch core**: discover → modify → verify → keep/discard. Git is the safety net.
-2. **Contract as prepare.py**: Discovery builds it, loop uses it immutably. Agent cannot manipulate evaluation.
-3. **Zero-memory discovery**: every run reads project ground truth. No config files, no --verify flags.
-4. **Metric over judgment**: numbers from tools, not scores from LLM. Rubric is fallback only.
-5. **NEVER STOP**: iterate until threshold or max_iter. Do not pause for confirmation.
-6. **Self-contained**: SKILL.md + rubric(fallback) + memory-ops + trajectory. Portable with `.claude/`.
+1. **Thin orchestrator** — main agent is loop driver only; heavy work in fresh subagents
+2. **Context reset per iteration** — modifier and evaluator get fresh context each time
+3. **Output to file, not context** — `verify_cmd > .refine-output 2>&1` (autoresearch pattern)
+4. **Contract as prepare.py** — Discovery builds it, loop uses it immutably
+5. **Generator ≠ Evaluator** — context-isolated (Anthropic GAN principle)
+6. **Zero-memory discovery** — every run reads project ground truth
+7. **Metric over judgment** — numbers from tools, not LLM opinion
+8. **NEVER STOP** — iterate until threshold or max_iter
+9. **No dead data** — only store what has a consumer (score, result, feedback)
+10. **Self-contained** — SKILL.md + evaluator agent + rubric fallback. Portable with `.claude/`

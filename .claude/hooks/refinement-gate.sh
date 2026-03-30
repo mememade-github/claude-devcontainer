@@ -1,6 +1,6 @@
 #!/bin/bash
 # refinement-gate.sh — Stop hook: prevent stopping during active refinement
-# Pattern: stop-gate.sh (JSON decision, 120s loop prevention, worktree-safe)
+# Pattern: JSON decision, 120s loop prevention, worktree-safe
 #
 # When .refinement-active marker exists and score < threshold:
 #   → JSON {decision:"block"} to continue refinement loop
@@ -66,16 +66,16 @@ if [ -z "$TASK_ID" ]; then
   exit 0
 fi
 
-# --- Check current state ---
-SCRIPTS_DIR="$ACTUAL_ROOT/.claude/skills/refine"
-if [ ! -f "$SCRIPTS_DIR/memory-ops.sh" ]; then
-  # Infrastructure missing — allow stop
+# --- Check current state (inline JSONL — no external scripts) ---
+ATTEMPTS_FILE="$ACTUAL_ROOT/.claude/agent-memory/refinement/attempts/${TASK_ID}.jsonl"
+if [ ! -f "$ATTEMPTS_FILE" ]; then
+  # No attempts recorded → allow stop
   exit 0
 fi
 
-# Honest fallback: script or jq failure → safe defaults (P-6)
-BEST_SCORE=$(bash "$SCRIPTS_DIR/memory-ops.sh" best --task "$TASK_ID" 2>/dev/null | jq -r '.score // "0"' 2>/dev/null || echo "0")
-ITERATION=$(bash "$SCRIPTS_DIR/memory-ops.sh" count --task "$TASK_ID" 2>/dev/null || echo "0")
+# P-6: jq/wc failure → safe defaults
+BEST_SCORE=$(jq -s 'sort_by(.score) | last | .score // 0' "$ATTEMPTS_FILE" 2>/dev/null || echo "0")
+ITERATION=$(wc -l < "$ATTEMPTS_FILE" 2>/dev/null || echo "0")
 
 # --- Termination check (no bc, awk only) ---
 # Score >= threshold → allow stop

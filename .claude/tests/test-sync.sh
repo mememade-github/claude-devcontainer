@@ -30,7 +30,7 @@ SYNC_TARGETS=(
 
 # Build list of syncable dirs that actually exist in ROOT
 SYNC_DIRS=()
-for candidate in rules skills hooks agents; do
+for candidate in rules skills hooks agents tests docs; do
   if [ -d "$ROOT_CLAUDE/$candidate" ]; then
     SYNC_DIRS+=("$candidate")
   fi

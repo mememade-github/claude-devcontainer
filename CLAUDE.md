@@ -14,9 +14,9 @@
 ├── REFERENCE.md                    # Commands and procedures
 ├── .claude/                        # Claude Code agent system
 │   ├── settings.json               # Hooks & environment
-│   ├── agents/                     # 6 agents
-│   ├── hooks/                      # 23 automation hooks
-│   ├── skills/                     # 7 /command skills
+│   ├── agents/                     # 3 agents
+│   ├── hooks/                      # 9 hook scripts
+│   ├── skills/                     # 6 /command skills
 │   ├── rules/                      # Standard rules (portable)
 │   ├── rules/project/              # Project-specific rules
 │   └── agent-memory/               # Per-agent cross-session memory
@@ -35,7 +35,7 @@
 
 | Tier | 역할 | 포함 |
 |------|------|------|
-| **Tier 1** | 베이스 템플릿 (이 저장소) | 6 agents, 23 hooks, 7 skills, DevContainer 인프라 |
+| **Tier 1** | 베이스 템플릿 (이 저장소) | 3 agents, 9 hooks, 6 skills, DevContainer 인프라 |
 | **Domain** | Tier 1 + 도메인 특화 기능 | 파생 프로젝트가 필요에 따라 추가 |
 
 ### Tier 1에 포함되지 않는 요소
@@ -69,13 +69,13 @@ These rules are enforced automatically by hooks. No user commands required.
 - **If no WIP**: Report readiness and wait for user instruction.
 - **Always**: Check auto memory (MEMORY.md) for Known Issues.
 
-### 2. Code Change Cycle (Agent Teams: quality)
+### 2. Code Change Cycle (Evaluator)
 
-After completing a batch of code changes:
-1. Delegate review to **code-reviewer** agent (team: quality) via Task tool
-2. If reviewer finds issues → fix before proceeding
-3. This step is NOT optional — skip only if changes are trivial
-
+- **Meaningful changes** (feature, refactor, bug fix): use `/refine` — evaluation
+  is structural (modify → evaluate → keep/discard loop). Not optional.
+- **Trivial changes** (typo, single config line): direct edit, no evaluation needed.
+- Never self-evaluate. Evaluation is performed by a context-isolated **evaluator**
+  agent that does not see the generator's reasoning.
 ### 3. Pre-Commit Gate (automated by pre-commit-gate.sh)
 
 Before ANY `git commit`:
@@ -89,18 +89,14 @@ Before ANY `git commit`:
 - Auto-resume at next session start
 - Delete WIP directory when task is complete
 
-### 5. Agent Teams Delegation
+### 5. Agent Delegation
 
-| Team | Agent | Auto-trigger |
-|------|-------|-------------|
-| quality | code-reviewer, agent-evolver | After code changes; on audit request |
-| build | build-error-resolver | On build failure; on runtime error |
-| testing | e2e-runner | On feature completion; on regression check |
-| workflow | wip-manager | When task spans sessions |
+| Agent | Invocation |
+|-------|------------|
+| evaluator | After code changes (1-pass review); within /refine loop |
+| planner | On-demand for design/architecture tasks |
+| wip-manager | When task spans sessions |
 
-Delegation via Task tool with `subagent_type` parameter.
-- **Team lifecycle**: `TeamCreate` at first delegation → `TeamDelete` when all agents complete.
-  Do NOT leave teams running between tasks.
 - Agent model and tool policy: see `.claude/rules/project/agent-overrides.md`
 
 ## Coding Rules

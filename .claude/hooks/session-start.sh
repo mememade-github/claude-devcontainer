@@ -99,26 +99,9 @@ fi
 SESSION_BRANCH=$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 SESSION_BRANCH_SAFE=$(echo "$SESSION_BRANCH" | tr '/' '-')
 
-# check own branch's pending-review marker
-PENDING_MARKER="$ACTUAL_ROOT/.claude/.pending-review.$SESSION_BRANCH_SAFE"
-if [ -f "$PENDING_MARKER" ]; then
-  PENDING_MTIME=$(stat -c %Y "$PENDING_MARKER" 2>/dev/null) || {
-    echo "WARN: cannot read pending-review marker: $PENDING_MARKER" >&2
-    PENDING_MTIME=$(date +%s)  # treat as fresh — do not auto-clean
-  }
-  MARKER_AGE=$(( $(date +%s) - PENDING_MTIME ))
-  if [ "$MARKER_AGE" -gt 3600 ]; then
-    rm -f "$PENDING_MARKER"
-    CONTEXT="${CONTEXT}Note: Stale pending-review marker (${MARKER_AGE}s old) was auto-cleaned.\n"
-  else
-    PENDING_FILES=$(cat "$PENDING_MARKER" | head -5 | tr '\n' ', ')
-    CONTEXT="${CONTEXT}WARNING: Pending code review from previous session: ${PENDING_FILES}\n"
-    CONTEXT="${CONTEXT}AUTO_ACTION: Complete code review before other work.\n"
-  fi
-fi
-
 # clean up legacy markers (pre-isolation format, no branch suffix)
 rm -f "$ACTUAL_ROOT/.claude/.pending-review" "$ACTUAL_ROOT/.claude/.stop-blocked-review" "$ACTUAL_ROOT/.claude/.stop-blocked-evolution"
+rm -f "$ACTUAL_ROOT/.claude/.pending-review.$SESSION_BRANCH_SAFE" "$ACTUAL_ROOT/.claude/.stop-blocked-review.$SESSION_BRANCH_SAFE"
 rm -f "$ACTUAL_ROOT/.claude/.last-verification" "$ACTUAL_ROOT/.claude/.last-evolution"
 
 # clean up stale markers from removed worktrees (orphan cleanup)
@@ -167,26 +150,7 @@ if [ -f "$WORKER_GUARD" ]; then
   fi
 fi
 
-# 7. Claude Code update check (use PROJECT_DIR — hooks are code in current worktree)
-UPDATE_SCRIPT="$PROJECT_DIR/.claude/hooks/claude-update-check.sh"
-if [ -f "$UPDATE_SCRIPT" ]; then
-  UPDATE_INFO=$(bash "$UPDATE_SCRIPT" 2>&1) || {
-    echo "WARN: claude-update-check failed" >&2
-  }
-  if [ -n "$UPDATE_INFO" ]; then
-    CONTEXT="${CONTEXT}${UPDATE_INFO}\n"
-  fi
-fi
-
-# 8. (removed: instinct system — autoresearch simplification 2026-03-28)
-
-# 9. Tool call counter reset (new session = fresh count, local to PROJECT_DIR)
-COUNTER_FILE="$PROJECT_DIR/.claude/.tool-call-counter"
-if ! echo "0" > "$COUNTER_FILE"; then
-  echo "WARN: counter reset failed: $COUNTER_FILE" >&2
-fi
-
-# 10. Environment info (auto-detected)
+# 7. Environment info (auto-detected)
 if [ -f /.dockerenv ]; then
   # Optional: os-release may not exist (P-5)
   OS_INFO=$(. /etc/os-release 2>/dev/null && echo "$NAME $VERSION_ID" || echo "Linux")

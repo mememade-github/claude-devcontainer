@@ -1,12 +1,13 @@
 # default.yml — Rubric Fallback for non-objective evaluation
 #
-# ROLE IN v4: This rubric is used ONLY when Discovery Phase cannot find
-# or generate any objective metric (Contract.mode == "rubric").
-# For most projects with tests/build/lint, the Contract's objective
-# metric takes priority and this file is not used.
+# ROLE IN v5: This rubric serves as calibration anchors for the evaluator
+# subagent when Contract.mode == "calibrated" (last resort).
+# For most projects with tests/build/lint, objective mode takes priority.
+# For non-code domains, tool-augmented mode with checks[] is preferred.
 #
-# When active (rubric fallback mode):
-# - IMMUTABLE during refinement — the agent cannot modify evaluation criteria
+# When active (calibrated mode):
+# - IMMUTABLE during refinement — the evaluator cannot modify calibration anchors
+# - Evaluator subagent scores against these anchors with tool evidence
 # - Each dimension has 5 anchor levels: 0.0, 0.25, 0.5, 0.75, 1.0
 # - NO interpolation — score must be exactly one of these values
 # - Every score MUST cite specific evidence (tool output, file:line, diff hunk)
