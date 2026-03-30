@@ -36,10 +36,10 @@ MAX_ITER="${MAX_ITER:-10}"
 echo "{\"task_id\":\"$TASK_ID\",\"threshold\":$THRESHOLD,\"max_iterations\":$MAX_ITER,\"started\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > .claude/.refinement-active
 ```
 
-Verify infrastructure exists:
+Verify infrastructure exists (scripts are co-located with this SKILL.md for portability):
 ```bash
-SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-/workspaces}/scripts/refinement"
-[ -f "$SCRIPTS_DIR/verify-score.sh" ] || { echo "Refinement infrastructure not found."; exit; }
+REFINE_DIR="${CLAUDE_PROJECT_DIR:-.}/.claude/skills/refine"
+[ -f "$REFINE_DIR/verify-score.sh" ] || { echo "Refinement infrastructure not found at $REFINE_DIR"; exit; }
 ```
 
 ### Step 1: Baseline
@@ -47,13 +47,13 @@ SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-/workspaces}/scripts/refinement"
 Run verification on the current state BEFORE any changes. This is attempt 0.
 
 ```bash
-RESULT=$(bash scripts/refinement/verify-score.sh --project "$PROJECT" --score)
+RESULT=$(bash "$REFINE_DIR/verify-score.sh" --project "$PROJECT" --score)
 BASELINE_SCORE=$(echo "$RESULT" | jq -r '.score')
 ```
 
 Record baseline:
 ```bash
-bash scripts/refinement/memory-ops.sh add \
+bash "$REFINE_DIR/memory-ops.sh" add \
   --task "$TASK_ID" --agent "baseline" --score "$BASELINE_SCORE" \
   --result "Initial state" --feedback "$(echo "$RESULT" | jq -r '.feedback' | head -20)"
 ```
@@ -76,14 +76,14 @@ After modification, `git add` changed files (do NOT commit yet — commit only o
 #### 3a. D_score (deterministic — Layer 1)
 
 ```bash
-RESULT=$(bash scripts/refinement/verify-score.sh --project "$PROJECT" --score)
+RESULT=$(bash "$REFINE_DIR/verify-score.sh" --project "$PROJECT" --score)
 D_SCORE=$(echo "$RESULT" | jq -r '.score')
 ```
 
 #### 3b. Structured feedback (poetiq hierarchical — Layer 2)
 
 ```bash
-FEEDBACK_XML=$(echo "$RESULT" | bash scripts/refinement/feedback-builder.sh)
+FEEDBACK_XML=$(echo "$RESULT" | bash "$REFINE_DIR/feedback-builder.sh")
 ```
 
 This produces 3-tier feedback:
@@ -95,7 +95,7 @@ This produces 3-tier feedback:
 
 Read the locked rubric:
 ```bash
-RUBRIC=$(cat scripts/refinement/rubrics/default.yml)
+RUBRIC=$(cat "$REFINE_DIR/rubrics/default.yml")
 ```
 
 Read the diff of changes made in this iteration:
@@ -125,7 +125,7 @@ Compute L_score as weighted average per rubric dimension weights.
 
 ```bash
 # Feed metrics + llm_score to score.sh for hybrid calculation
-COMBINED=$(echo "$METRICS" | jq --argjson llm "$L_SCORE" '. + {llm_score: $llm}' | bash scripts/refinement/score.sh)
+COMBINED=$(echo "$METRICS" | jq --argjson llm "$L_SCORE" '. + {llm_score: $llm}' | bash "$REFINE_DIR/score.sh")
 SCORE=$(echo "$COMBINED" | jq -r '.score')
 ```
 
@@ -136,7 +136,7 @@ If `--no-llm`: L_score is null, score.sh falls back to pure D_score.
 Compare against previous best:
 
 ```bash
-PREV_BEST=$(bash scripts/refinement/memory-ops.sh best --task "$TASK_ID" | jq -r '.score // "0"')
+PREV_BEST=$(bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID" | jq -r '.score // "0"')
 ```
 
 **If SCORE > PREV_BEST** (improved):
@@ -157,7 +157,7 @@ git checkout -- .
 ### Step 5: Record
 
 ```bash
-bash scripts/refinement/memory-ops.sh add \
+bash "$REFINE_DIR/memory-ops.sh" add \
   --task "$TASK_ID" --agent "${AGENT:-self}" --score "$SCORE" \
   --result "<one-line: what changed, keep/discard>" \
   --feedback "$FEEDBACK_XML"
@@ -166,7 +166,7 @@ bash scripts/refinement/memory-ops.sh add \
 ### Step 6: Check Termination
 
 ```bash
-ITERATION=$(bash scripts/refinement/memory-ops.sh count --task "$TASK_ID")
+ITERATION=$(bash "$REFINE_DIR/memory-ops.sh" count --task "$TASK_ID")
 ```
 
 | Condition | Action |
@@ -178,7 +178,7 @@ ITERATION=$(bash scripts/refinement/memory-ops.sh count --task "$TASK_ID")
 On ACCEPT or STOP:
 ```bash
 rm -f .claude/.refinement-active
-bash scripts/refinement/memory-ops.sh best --task "$TASK_ID"
+bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID"
 ```
 
 ### Step 7: Trajectory + Next Iteration (poetiq pattern)
@@ -186,7 +186,7 @@ bash scripts/refinement/memory-ops.sh best --task "$TASK_ID"
 Build improvement trajectory (worst→best, max 5 — poetiq create_examples pattern):
 
 ```bash
-TRAJECTORY=$(bash scripts/refinement/trajectory.sh --task "$TASK_ID" --max 5)
+TRAJECTORY=$(bash "$REFINE_DIR/trajectory.sh" --task "$TASK_ID" --max 5)
 ```
 
 Return to **Step 2** with trajectory as context:
@@ -207,3 +207,7 @@ Use it to:
 4. **Hybrid scoring**: D_score * 0.6 + L_score * 0.4. D_score is the foundation.
 5. **NEVER STOP**: iterate until threshold or max_iter. Do not pause for confirmation.
 6. **Any agent or self**: no restriction on who makes changes. Main agent can act directly.
+7. **Self-contained skill**: All scripts (verify-score, memory-ops, score, feedback-builder,
+   trajectory) and rubrics live in this directory alongside SKILL.md. This ensures portability —
+   any project that syncs `.claude/skills/` automatically receives the full /refine infrastructure.
+   `$REFINE_DIR` resolves to `$CLAUDE_PROJECT_DIR/.claude/skills/refine` in every context.

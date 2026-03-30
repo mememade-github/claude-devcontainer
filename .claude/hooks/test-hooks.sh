@@ -261,22 +261,22 @@ echo -n "17. Stop hooks integration (independent markers): "
 echo "products/example/test.py" > "$ACTUAL_ROOT/.claude/.pending-review.$BRANCH_SAFE"
 rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-review.$BRANCH_SAFE"
 rm -f "$ACTUAL_ROOT/.claude/.stop-blocked-refinement.$BRANCH_SAFE"
-mkdir -p "$ACTUAL_ROOT/scripts/refinement"
+mkdir -p "$ACTUAL_ROOT/.claude/skills/refine"
 REFINE_MARKER="$ACTUAL_ROOT/.claude/.refinement-active"
 echo '{"task_id":"test-integration","threshold":0.9,"max_iterations":5}' > "$REFINE_MARKER"
 # Create memory-ops.sh stub
 ORIG_MEMOPS=""
-if [ -f "$ACTUAL_ROOT/scripts/refinement/memory-ops.sh" ]; then
-  ORIG_MEMOPS=$(cat "$ACTUAL_ROOT/scripts/refinement/memory-ops.sh")
+if [ -f "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh" ]; then
+  ORIG_MEMOPS=$(cat "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh")
 fi
-cat > "$ACTUAL_ROOT/scripts/refinement/memory-ops.sh" <<'STUB'
+cat > "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh" <<'STUB'
 #!/bin/bash
 case "$1" in
   best)  echo '{"score":0.3}' ;;
   count) echo "1" ;;
 esac
 STUB
-chmod +x "$ACTUAL_ROOT/scripts/refinement/memory-ops.sh"
+chmod +x "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh"
 
 # Run both Stop hooks sequentially (mimics real Stop event)
 STOP_OUT=$(echo '{}' | bash "$PROJECT_DIR/.claude/hooks/stop-gate.sh" 2>&1)
@@ -304,7 +304,7 @@ fi
 
 # Restore memory-ops.sh
 if [ -n "$ORIG_MEMOPS" ]; then
-  echo "$ORIG_MEMOPS" > "$ACTUAL_ROOT/scripts/refinement/memory-ops.sh"
+  echo "$ORIG_MEMOPS" > "$ACTUAL_ROOT/.claude/skills/refine/memory-ops.sh"
 fi
 rm -f "$REFINE_MARKER"
 

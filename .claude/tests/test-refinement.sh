@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
-SCRIPTS="$ROOT/scripts/refinement"
+SCRIPTS="$ROOT/.claude/skills/refine"
 PASS=0; FAIL=0; SKIP=0
 
 result() {
@@ -201,18 +201,18 @@ fi
 # =============================================================================
 GATE_DIR_11=$(mktemp -d)
 mkdir -p "$GATE_DIR_11/.claude"
-mkdir -p "$GATE_DIR_11/scripts/refinement"
+mkdir -p "$GATE_DIR_11/.claude/skills/refine"
 # Create marker
 echo '{"task_id":"test-rf11","threshold":0.9,"max_iterations":5}' > "$GATE_DIR_11/.claude/.refinement-active"
 # Create memory-ops.sh stub that returns low score
-cat > "$GATE_DIR_11/scripts/refinement/memory-ops.sh" <<'STUB'
+cat > "$GATE_DIR_11/.claude/skills/refine/memory-ops.sh" <<'STUB'
 #!/bin/bash
 case "$1" in
   best)  echo '{"score":0.3}' ;;
   count) echo "1" ;;
 esac
 STUB
-chmod +x "$GATE_DIR_11/scripts/refinement/memory-ops.sh"
+chmod +x "$GATE_DIR_11/.claude/skills/refine/memory-ops.sh"
 
 GATE_OUT_11=$(echo '{}' | CLAUDE_PROJECT_DIR="$GATE_DIR_11" bash "$GATE" 2>/dev/null)
 if echo "$GATE_OUT_11" | jq -e '.decision == "block"' >/dev/null 2>&1; then
@@ -227,16 +227,16 @@ rm -rf "$GATE_DIR_11"
 # =============================================================================
 GATE_DIR_12=$(mktemp -d)
 mkdir -p "$GATE_DIR_12/.claude"
-mkdir -p "$GATE_DIR_12/scripts/refinement"
+mkdir -p "$GATE_DIR_12/.claude/skills/refine"
 echo '{"task_id":"test-rf12","threshold":0.8,"max_iterations":5}' > "$GATE_DIR_12/.claude/.refinement-active"
-cat > "$GATE_DIR_12/scripts/refinement/memory-ops.sh" <<'STUB'
+cat > "$GATE_DIR_12/.claude/skills/refine/memory-ops.sh" <<'STUB'
 #!/bin/bash
 case "$1" in
   best)  echo '{"score":0.85}' ;;
   count) echo "2" ;;
 esac
 STUB
-chmod +x "$GATE_DIR_12/scripts/refinement/memory-ops.sh"
+chmod +x "$GATE_DIR_12/.claude/skills/refine/memory-ops.sh"
 
 GATE_OUT_12=$(echo '{}' | CLAUDE_PROJECT_DIR="$GATE_DIR_12" bash "$GATE" 2>/dev/null)
 GATE_EXIT_12=$?
@@ -317,13 +317,13 @@ else
 fi
 
 # =============================================================================
-# RF-17: SKILL.md references scripts/refinement (infrastructure detection v3.1)
+# RF-17: SKILL.md references .claude/skills/refine (internalized infrastructure)
 # =============================================================================
 if [ -f "$SKILL" ]; then
-  if grep -q 'scripts/refinement' "$SKILL"; then
-    result PASS RF-17 "SKILL.md: scripts/refinement reference present"
+  if grep -q '\.claude/skills/refine' "$SKILL"; then
+    result PASS RF-17 "SKILL.md: .claude/skills/refine reference present"
   else
-    result FAIL RF-17 "SKILL.md: scripts/refinement not found"
+    result FAIL RF-17 "SKILL.md: .claude/skills/refine not found"
   fi
 else
   result FAIL RF-17 "SKILL.md not found"

@@ -1,8 +1,11 @@
 #!/bin/bash
-# score.sh — Weighted quality score from lint/build/test/review metrics
-# Input: JSON on stdin
-# Output: JSON with score, breakdown, weights on stdout
+# score.sh — Hybrid quality score (D_score deterministic + L_score LLM rubric)
+# Input: JSON on stdin with metrics (required) + llm_score (optional)
+# Output: JSON with score, d_score, l_score, breakdown, weights on stdout
 # Dependencies: jq only (no bc)
+#
+# Hybrid formula: score = d_score * 0.6 + l_score * 0.4
+# If l_score is absent (null), score = d_score (pure deterministic fallback)
 
 set -euo pipefail
 
@@ -71,11 +74,23 @@ weights as $w |
  else
    ($active | map(.w) | add) as $total_w |
    ($active | map(.s * .w / $total_w) | add) | round4
+ end) as $d_score |
+
+# hybrid scoring: integrate LLM rubric score if provided
+(.llm_score // null) as $l_score |
+
+(if $l_score != null then
+   ($d_score * 0.6 + $l_score * 0.4) | round4
+ else
+   $d_score
  end) as $total |
 
 {
   score: $total,
+  d_score: $d_score,
+  l_score: $l_score,
   breakdown: $breakdown,
-  weights: $w
+  weights: $w,
+  hybrid: ($l_score != null)
 }
 '

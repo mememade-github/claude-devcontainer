@@ -26,7 +26,7 @@ if [ -f "$REFINE_MARKER" ] && [ ! -L "$REFINE_MARKER" ]; then
   REFINE_TASK=$(jq -r '.task_id // ""' "$REFINE_MARKER" 2>/dev/null || echo "")
   REFINE_THRESH=$(jq -r '.threshold // "0.85"' "$REFINE_MARKER" 2>/dev/null || echo "0.85")
   if [ -n "$REFINE_TASK" ]; then
-    SCRIPTS_DIR="$PROJECT_DIR/scripts/refinement"
+    SCRIPTS_DIR="$PROJECT_DIR/.claude/skills/refine"
     if [ -f "$SCRIPTS_DIR/memory-ops.sh" ]; then
       BEST=$(bash "$SCRIPTS_DIR/memory-ops.sh" best --task "$REFINE_TASK" 2>/dev/null | jq -r '.score // "0"' 2>/dev/null || echo "0")
       ITER=$(bash "$SCRIPTS_DIR/memory-ops.sh" count --task "$REFINE_TASK" 2>/dev/null || echo "0")
