@@ -64,9 +64,7 @@ if [ -n "$ENV_ISSUES" ]; then
   CONTEXT="${CONTEXT}AUTO_CHECK: Review environment issues above and resolve if blocking.\n"
 fi
 
-# 4. Stale markers cleanup
-rm -f "$ACTUAL_ROOT/.claude/.last-verification"
-
+# 4. Stale markers cleanup: remove verification markers for deleted branches
 # orphan marker cleanup: remove verification markers for deleted branches
 for marker in "$ACTUAL_ROOT"/.claude/.last-verification.*; do
   [ -f "$marker" ] || continue
