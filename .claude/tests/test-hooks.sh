@@ -385,7 +385,7 @@ fi
 # --- HK-23: user-prompt-submit.sh functional test (no active state) ---
 UPS_HOOK="$HOOKS_DIR/user-prompt-submit.sh"
 if [ -f "$UPS_HOOK" ]; then
-  UPS_OUT=$(echo '{}' | bash "$UPS_HOOK" 2>&1)
+  UPS_OUT=$(echo '{}' | CLAUDE_PROJECT_DIR="$ROOT" bash "$UPS_HOOK" 2>&1)
   if [ -z "$UPS_OUT" ]; then
     result "PASS" "HK-23" "user-prompt-submit no-state" "silent when no active markers"
   else
