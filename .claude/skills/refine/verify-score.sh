@@ -26,6 +26,12 @@ if [ ! -d "$PROJECT" ]; then
   exit 1
 fi
 
+# --- Project-specific scorer (autoresearch pattern: project defines its own metric) ---
+PROJECT_SCORER="$PROJECT/.refine/score.sh"
+if [ -f "$PROJECT_SCORER" ]; then
+  exec bash "$PROJECT_SCORER" --project "$PROJECT" ${WITH_SCORE:+--score}
+fi
+
 # --- ANSI escape code removal (Poetiq _build_feedback() produces pure text) ---
 strip_ansi() {
   sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g'

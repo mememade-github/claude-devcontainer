@@ -67,7 +67,7 @@ if [ -z "$TASK_ID" ]; then
 fi
 
 # --- Check current state ---
-SCRIPTS_DIR="$ACTUAL_ROOT/scripts/refinement"
+SCRIPTS_DIR="$ACTUAL_ROOT/.claude/skills/refine"
 if [ ! -f "$SCRIPTS_DIR/memory-ops.sh" ]; then
   # Infrastructure missing — allow stop
   exit 0

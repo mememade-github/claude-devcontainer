@@ -1,0 +1,55 @@
+# default.yml — Locked Rubric for Opus evaluation
+# RULERS pattern: fixed anchor points + evidence requirement
+#
+# Each dimension has 5 anchor levels (0.0, 0.25, 0.5, 0.75, 1.0).
+# The evaluator MUST cite specific code lines as evidence.
+# No interpolation — score must be one of the 5 anchor values.
+
+rubric:
+  name: default
+  version: "1.0"
+  description: General-purpose code quality rubric for any project
+
+  # Self-preference bias defense
+  evaluation_rules:
+    - "Score ONLY against the anchor criteria below. Do not use subjective judgment."
+    - "Every score MUST include file:line evidence from the actual code."
+    - "If no evidence can be cited, score is 0.0 for that dimension."
+    - "Evaluate the DIFF (changes made), not the entire codebase."
+
+  dimensions:
+    documentation:
+      weight: 0.25
+      anchors:
+        "0.0": "No documentation. Changed functions/classes have no docstrings or comments."
+        "0.25": "Minimal. Some docstrings exist but are incomplete (missing params, returns, or purpose)."
+        "0.5": "Adequate. All changed public functions have docstrings with purpose stated."
+        "0.75": "Good. Docstrings include params, returns, raises. Non-obvious logic has inline comments."
+        "1.0": "Excellent. Complete docstrings, usage examples where helpful, edge cases documented."
+
+    design:
+      weight: 0.25
+      anchors:
+        "0.0": "Violates project patterns. Introduces new patterns inconsistent with existing codebase."
+        "0.25": "Partially follows patterns. Some code matches project style, some diverges."
+        "0.5": "Follows patterns. Code is consistent with existing codebase style and structure."
+        "0.75": "Good design. Clear separation of concerns, appropriate abstraction level."
+        "1.0": "Excellent. Improves existing patterns, reduces complexity, well-motivated abstractions."
+
+    completeness:
+      weight: 0.30
+      anchors:
+        "0.0": "Task not addressed. Changes do not relate to the stated objective."
+        "0.25": "Partially addressed. Some aspects of the task are handled, major gaps remain."
+        "0.5": "Core addressed. Main objective is met, edge cases not handled."
+        "0.75": "Mostly complete. Core + major edge cases handled, minor gaps remain."
+        "1.0": "Fully complete. All aspects of the task addressed including error handling and edge cases."
+
+    consistency:
+      weight: 0.20
+      anchors:
+        "0.0": "Inconsistent naming, formatting, and patterns throughout changes."
+        "0.25": "Some consistency. Naming mostly follows conventions but formatting varies."
+        "0.5": "Consistent. Naming and formatting follow project conventions."
+        "0.75": "Highly consistent. All changes follow conventions, imports organized, no dead code."
+        "1.0": "Exemplary. Perfect adherence to project conventions, improves consistency of touched files."
