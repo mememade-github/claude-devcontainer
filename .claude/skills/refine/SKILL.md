@@ -1,6 +1,6 @@
 ---
 name: refine
-description: Autonomous iterative refinement loop — autoresearch pattern with Opus rubric evaluation
+description: Autonomous iterative refinement loop — autoresearch pattern with Discovery Phase
 argument-hint: "<task-description> [--max-iter N] [--threshold 0.85] [--project PATH] [--agent TYPE]"
 user-invocable: true
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent
@@ -8,18 +8,19 @@ allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Agent
 
 # /refine — Autonomous Iterative Refinement Loop
 
-Autoresearch pattern: modify → verify → evaluate → keep/discard → repeat.
+Autoresearch pattern: discover → modify → verify → keep/discard → repeat.
 
 Core mapping from [autoresearch](https://github.com/karpathy/autoresearch):
 
-| autoresearch | /refine |
-|---|---|
-| `prepare.py` (immutable evaluation) | `rubrics/default.yml` (immutable rubric) |
-| `val_bpb` (single scalar metric) | Opus score (0.0-1.0) |
-| `uv run train.py` (run experiment) | Claude runs tools (Bash, Read, Grep) |
-| `grep "^val_bpb:" run.log` (read result) | Claude reads tool output as evidence |
-| `new < old` → keep | `new > prev_best` → keep |
-| `git reset` → discard | `git checkout -- .` → discard |
+| autoresearch | /refine v3 | /refine v4 |
+|---|---|---|
+| agent reads `prepare.py` + `train.py` | — | **Discovery Phase** (reads project → builds Contract) |
+| `prepare.py` (immutable evaluation) | `rubrics/default.yml` (rubric) | **Verification Contract** (immutable, per-run) |
+| `val_bpb` (single scalar metric) | Opus 4-dim weighted score | **Contract metric** (test pass rate, error count, etc.) |
+| `uv run train.py > run.log 2>&1` | Claude runs tools | **Contract.verify_cmd** execution |
+| `grep "^val_bpb:" run.log` | Claude interprets evidence | **Contract.parse** — mechanical extraction, no judgment |
+| `new < old` → keep | `new > prev_best` → keep | `new > prev_best` → keep (unchanged) |
+| `git reset` → discard | `git checkout -- .` → discard | `git checkout -- .` → discard (unchanged) |
 
 ## Arguments
 
@@ -39,82 +40,123 @@ PROJECT="${PROJECT:-$CLAUDE_PROJECT_DIR}"
 THRESHOLD="${THRESHOLD:-0.85}"
 MAX_ITER="${MAX_ITER:-10}"
 REFINE_DIR="${PROJECT}/.claude/skills/refine"
-
-# refinement-gate marker (Stop hook checks this)
-echo "{\"task_id\":\"$TASK_ID\",\"threshold\":$THRESHOLD,\"max_iterations\":$MAX_ITER,\"started\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > .claude/.refinement-active
 ```
 
-### Step 1: Baseline (attempt 0)
+### Step 1: Discover (zero-memory ground-truth discovery)
 
-Evaluate the current state BEFORE any changes. This establishes the baseline score.
+Read the project and construct a Verification Contract. This is the autoresearch equivalent of the agent reading `prepare.py` and `train.py` to understand the experiment setup.
 
-1. **Read the project** — understand what exists (Read, Glob, Grep)
-2. **Run verification tools** — whatever is appropriate for this project:
-   - Python: `ruff check`, `mypy`, `pytest`
-   - TypeScript: `npm test`, `npm run build`
-   - Claude system: `bash .claude/tests/run-all.sh`
-   - Documents: read content, check structure
-   - Use your judgment. Run what makes sense. Do NOT invent tools that don't exist.
-3. **Read the rubric** — `cat "$REFINE_DIR/rubrics/default.yml"`
-4. **Evaluate** — score each rubric dimension against the evidence you gathered.
-   Apply the rubric evaluation protocol (see Evaluation section below).
-5. **Record baseline**:
-```bash
-bash "$REFINE_DIR/memory-ops.sh" add \
-  --task "$TASK_ID" --agent "baseline" --score "$BASELINE_SCORE" \
-  --result "Initial state" --feedback "<one-line summary of current state>"
-```
+**Every /refine run rediscovers from scratch. No cached config. No --verify flag. Ground truth only.**
 
-### Step 2: Modify (autoresearch pattern)
+1. **Read the project** — Glob, Read, Grep to understand structure.
+2. **Find verification infrastructure** — use your intelligence to discover:
+   - Test suites (any framework, any language)
+   - Build systems (any tool)
+   - Linters, type checkers
+   - Existing verification scripts
+   - Any command that produces objective, repeatable output
+3. **Construct the Verification Contract**:
 
-**If `--agent` specified**: Spawn the agent with the task description.
-**If no `--agent`** (default): Act directly — read code, make changes with Edit/Write.
-
-After modification, `git add` changed files (do NOT commit yet — commit only on keep).
-
-### Step 3: Evaluate (the immutable evaluation — prepare.py analog)
-
-This is the critical step. Like autoresearch's `prepare.py`, the rubric is IMMUTABLE.
-
-#### 3a. Collect evidence using YOUR tools
-
-Run whatever tools are appropriate. Examples (not prescriptive):
-- `git diff HEAD` — see what changed
-- `bash -c "cd $PROJECT && pytest tests/ -q"` — run tests
-- `bash -c "cd $PROJECT && ruff check src/"` — lint
-- Read specific files to check correctness
-
-The tool outputs ARE your evidence. No separate evidence-collection script.
-
-#### 3b. Read the immutable rubric
-
-```bash
-cat "$REFINE_DIR/rubrics/default.yml"
-```
-
-#### 3c. Score each dimension
-
-For EACH dimension in the rubric:
-1. Read the anchor criteria
-2. Match evidence to an anchor level (0.0, 0.25, 0.5, 0.75, 1.0)
-3. **MUST cite specific evidence** — tool output line, file:line, or diff hunk
-4. If no evidence can be cited → score is 0.0
-
-Output evaluation as JSON:
 ```json
 {
-  "correctness": {"score": 0.75, "evidence": "pytest: 10 passed, 1 failed (test_edge_case)"},
-  "improvement": {"score": 0.75, "evidence": "diff: added error handling for zero division"},
-  "completeness": {"score": 0.5, "evidence": "handles main case, missing timeout scenario"},
-  "consistency": {"score": 1.0, "evidence": "follows existing snake_case convention"}
+  "mode": "objective|generated|rubric",
+  "verify_cmd": "<command that produces measurable output>",
+  "parse": "<how to extract the metric from verify_cmd output>",
+  "metric": "<metric name — e.g. pass_rate, error_count, exit_code>",
+  "direction": "higher|lower|zero",
+  "discovery_log": "<what you found and why you chose this>"
 }
 ```
 
-#### 3d. Compute final score
+**Contract modes**:
 
-Weighted average per rubric dimension weights → single float (0.0-1.0).
+| Mode | When | How score is produced |
+|---|---|---|
+| `objective` | Project has tests/build/lint | verify_cmd output → mechanical parsing → number |
+| `generated` | No infra exists; agent writes tests/scripts | Same as objective, but verification was created in this step |
+| `rubric` | No objective metric possible (last resort) | rubrics/default.yml 4-dim scoring (v3 behavior) |
 
-### Step 4: Keep or Discard (binary decision)
+4. **If no verification infrastructure exists** (generated mode):
+   - Write tests or a verification script appropriate for the task
+   - Tests MUST fail on at least one case in the current state (TDD RED principle)
+   - These tests become the Contract's verify_cmd
+   - Once written, the tests are FROZEN — treat them as part of the Contract
+
+5. **If no objective metric is possible** (rubric fallback):
+   - Use `rubrics/default.yml` with v3 evaluation protocol
+   - This is the last resort, not the default
+
+6. **Validate the Contract**:
+   - Run `verify_cmd` once. It must produce parseable output.
+   - The baseline score must NOT be perfect. If it is, the Contract cannot distinguish improvement.
+   - If validation fails, reconstruct the Contract.
+
+7. **Freeze the Contract** — write to `.refinement-active` marker:
+
+```bash
+cat > .claude/.refinement-active <<MARKER
+{
+  "task_id": "$TASK_ID",
+  "threshold": $THRESHOLD,
+  "max_iterations": $MAX_ITER,
+  "started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "contract": {
+    "mode": "<mode>",
+    "verify_cmd": "<command>",
+    "parse": "<extraction method>",
+    "metric": "<name>",
+    "direction": "<higher|lower|zero>"
+  }
+}
+MARKER
+```
+
+**After this point, the Contract is IMMUTABLE for the rest of the loop.**
+
+### Step 2: Baseline (attempt 0)
+
+Run the Contract to establish the baseline score.
+
+1. **Execute**: `bash -c "<Contract.verify_cmd>" 2>&1`
+2. **Parse**: Extract the metric using Contract.parse
+3. **Normalize**: Convert to a 0.0-1.0 score:
+   - `pass_rate`: passed / total (e.g., "8 passed, 2 failed" → 0.8)
+   - `error_count`: 1.0 - min(errors / baseline_errors, 1.0) (fewer errors = higher score)
+   - `exit_code`: 1.0 if 0, else 0.0
+   - Custom: define normalization in Contract.parse
+4. **Record**:
+
+```bash
+bash "$REFINE_DIR/memory-ops.sh" add \
+  --task "$TASK_ID" --agent "baseline" --score "$BASELINE_SCORE" \
+  --metric-type "<mode>" --metric-raw "<raw verify_cmd output>" \
+  --result "Baseline" --feedback "<one-line: what the metric shows>"
+```
+
+### Step 3: Modify
+
+**If `--agent` specified**: Spawn the agent with the task description + trajectory context.
+**If no `--agent`** (default): Act directly — read code, make changes with Edit/Write.
+
+After modification, `git add` changed files. Do NOT commit yet — commit only on keep.
+
+### Step 4: Evaluate
+
+Run the Contract again. This is the `grep "^val_bpb:" run.log` equivalent.
+
+**For objective/generated mode** (no agent judgment):
+1. Execute: `bash -c "<Contract.verify_cmd>" 2>&1`
+2. Parse: Same method as baseline
+3. Normalize: Same method as baseline
+4. The number IS the score. No interpretation. No judgment.
+
+**For rubric mode** (fallback only):
+1. Run verification tools appropriate for the project
+2. Read `cat "$REFINE_DIR/rubrics/default.yml"`
+3. Score each dimension (0.0, 0.25, 0.5, 0.75, 1.0) citing evidence
+4. Weighted average → score
+
+### Step 5: Keep or Discard (binary decision)
 
 ```bash
 PREV_BEST=$(bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID" | jq -r '.score // "0"')
@@ -126,16 +168,17 @@ PREV_BEST=$(bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID" | jq -r '.sc
 | `SCORE <= PREV_BEST` | **DISCARD** — `git checkout -- .` | `val_bpb` worse → `git reset` |
 | `SCORE >= THRESHOLD` | **ACCEPT** — exit loop | N/A (autoresearch runs forever) |
 
-### Step 5: Record
+### Step 6: Record
 
 ```bash
 bash "$REFINE_DIR/memory-ops.sh" add \
   --task "$TASK_ID" --agent "${AGENT:-self}" --score "$SCORE" \
+  --metric-type "<mode>" --metric-raw "<raw output>" \
   --result "<one-line: what changed, KEEP/DISCARD>" \
-  --feedback "<evaluation summary with key evidence>"
+  --feedback "<metric summary>"
 ```
 
-### Step 6: Check Termination
+### Step 7: Check Termination
 
 ```bash
 ITERATION=$(bash "$REFINE_DIR/memory-ops.sh" count --task "$TASK_ID")
@@ -145,7 +188,7 @@ ITERATION=$(bash "$REFINE_DIR/memory-ops.sh" count --task "$TASK_ID")
 |-----------|--------|
 | `SCORE >= THRESHOLD` | **ACCEPT** — remove marker, report success |
 | `ITERATION >= MAX_ITER` | **STOP** — remove marker, report best result |
-| Otherwise | Continue to Step 7 |
+| Otherwise | Continue to Step 8 |
 
 On ACCEPT or STOP:
 ```bash
@@ -153,35 +196,35 @@ rm -f .claude/.refinement-active
 bash "$REFINE_DIR/memory-ops.sh" best --task "$TASK_ID"
 ```
 
-### Step 7: Trajectory + Next Iteration
+### Step 8: Trajectory + Next Iteration
 
 ```bash
 TRAJECTORY=$(bash "$REFINE_DIR/trajectory.sh" --task "$TASK_ID" --max 5)
 ```
 
-Return to **Step 2** with trajectory as context. Use it to:
+Return to **Step 3** with trajectory as context. Use it to:
 - Avoid repeating failed approaches (DISCARD entries)
 - Build on successful attempts (KEEP entries)
-- Focus on dimensions with lowest scores
+- Focus on what the metric reveals as weakest
 
 **Continue iterating. Do not ask for permission to continue.**
 
-## Evaluation Protocol (self-evaluation bias defense)
+## Discovery Protocol
 
-These rules are IMMUTABLE — they correspond to autoresearch's `prepare.py` being unmodifiable.
+These rules govern Step 1 (Discover). They replace v3's Evaluation Protocol.
 
-1. **Rubric is law** — score ONLY against anchor criteria in `rubrics/default.yml`. No subjective judgment.
-2. **Evidence-first** — every dimension score MUST cite specific tool output or file:line. No evidence = 0.0.
-3. **No interpolation** — score must be one of {0.0, 0.25, 0.5, 0.75, 1.0}. No 0.6 or 0.8.
-4. **Evaluate the DIFF** — judge changes made, not the entire codebase.
-5. **Tool output trumps intuition** — if tests fail, correctness cannot be 1.0 regardless of code quality.
-6. **Trajectory calibrates** — past scores set expectations. A score higher than all previous attempts needs stronger evidence.
+1. **Zero-memory** — every /refine run rediscovers from scratch. Do not rely on prior sessions, config files, or cached knowledge. Read the project's current state as ground truth.
+2. **Contract is immutable** — once frozen (end of Step 1), verify_cmd, parse, metric, and direction cannot be modified for the rest of the loop. This is the autoresearch `prepare.py` principle.
+3. **Metric over judgment** — if an objective metric exists (tests, build, lint), use it. Agent judgment (rubric scoring) is the last resort, not the default.
+4. **Baseline must not be perfect** — if the baseline score is already 1.0 or at threshold, the Contract cannot distinguish improvement. Reconstruct with a more discriminating metric.
+5. **Generated tests must fail** — when writing tests in `generated` mode, at least one test must fail in the current state (TDD RED). Tests that all pass cannot drive improvement.
+6. **Parse failure = score 0** — if verify_cmd output cannot be parsed into a number, treat as crash (score 0, DISCARD). Same as autoresearch treating OOM as failure.
 
 ## Design Principles
 
-1. **autoresearch core**: modify → verify → evaluate → keep/discard. Git is the safety net.
-2. **Opus as prepare.py**: Claude evaluates against immutable rubric, citing tool evidence.
-3. **No arbitrary scripts**: Claude's native tools (Bash, Read, Edit, Grep) are the only instruments.
-4. **Binary decision**: score > prev_best → keep, else → discard. No complex formulas.
+1. **autoresearch core**: discover → modify → verify → keep/discard. Git is the safety net.
+2. **Contract as prepare.py**: Discovery builds it, loop uses it immutably. Agent cannot manipulate evaluation.
+3. **Zero-memory discovery**: every run reads project ground truth. No config files, no --verify flags.
+4. **Metric over judgment**: numbers from tools, not scores from LLM. Rubric is fallback only.
 5. **NEVER STOP**: iterate until threshold or max_iter. Do not pause for confirmation.
-6. **Self-contained**: SKILL.md + rubric + memory-ops + trajectory. Portable with `.claude/`.
+6. **Self-contained**: SKILL.md + rubric(fallback) + memory-ops + trajectory. Portable with `.claude/`.

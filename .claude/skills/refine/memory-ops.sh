@@ -1,6 +1,6 @@
 #!/bin/bash
 # memory-ops.sh — Refinement attempt CRUD (JSONL storage)
-# Usage: memory-ops.sh add   --task <id> --agent <name> --score <n> [--feedback <text>] [--result <text>]
+# Usage: memory-ops.sh add   --task <id> --agent <name> --score <n> [--feedback <text>] [--result <text>] [--metric-type <type>] [--metric-raw <raw>]
 #        memory-ops.sh {list|best|count|clear} --task <id>
 
 set -euo pipefail
@@ -23,6 +23,8 @@ AGENT=""
 SCORE=""
 RESULT_TEXT=""
 FEEDBACK=""
+METRIC_TYPE=""
+METRIC_RAW=""
 
 # --- Parse args ---
 while [ $# -gt 0 ]; do
@@ -32,6 +34,8 @@ while [ $# -gt 0 ]; do
     --score)  SCORE="$2"; shift 2 ;;
     --result) RESULT_TEXT="$2"; shift 2 ;;
     --feedback) FEEDBACK="$2"; shift 2 ;;
+    --metric-type) METRIC_TYPE="$2"; shift 2 ;;
+    --metric-raw)  METRIC_RAW="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -65,6 +69,7 @@ case "$COMMAND" in
     # Safe JSON encoding via jq + PAT masking
     SAFE_RESULT=$(printf '%s' "$RESULT_TEXT" | mask_secrets | jq -Rs '.')
     SAFE_FEEDBACK=$(printf '%s' "$FEEDBACK" | mask_secrets | jq -Rs '.')
+    SAFE_METRIC_RAW=$(printf '%s' "${METRIC_RAW:-}" | mask_secrets | jq -Rs '.')
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     LINE=$(jq -n -c \
@@ -74,8 +79,10 @@ case "$COMMAND" in
       --argjson scr "$SCORE" \
       --argjson res "$SAFE_RESULT" \
       --argjson fb "$SAFE_FEEDBACK" \
+      --arg mt "${METRIC_TYPE:-rubric}" \
+      --argjson mr "$SAFE_METRIC_RAW" \
       --arg ts "$TIMESTAMP" \
-      '{task_id:$tid,attempt:$att,agent:$agt,result_summary:$res,feedback:$fb,score:$scr,timestamp:$ts}')
+      '{task_id:$tid,attempt:$att,agent:$agt,result_summary:$res,feedback:$fb,score:$scr,metric_type:$mt,metric_raw:$mr,timestamp:$ts}')
 
     if ! printf '%s\n' "$LINE" >> "$FILE"; then
       echo "Error: failed to write to $FILE" >&2

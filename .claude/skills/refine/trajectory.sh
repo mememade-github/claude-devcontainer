@@ -54,8 +54,13 @@ cdata_safe() {
   sed 's/]]>/]]]]><![CDATA[>/g'
 }
 
+# --- Read contract metadata from .refinement-active (if available) ---
+REFINE_MARKER="${CLAUDE_PROJECT_DIR:-.}/.claude/.refinement-active"
+CONTRACT_METRIC_TYPE=$(jq -r '.contract.mode // "rubric"' "$REFINE_MARKER" 2>/dev/null || echo "rubric")
+CONTRACT_DIRECTION=$(jq -r '.contract.direction // "higher"' "$REFINE_MARKER" 2>/dev/null || echo "higher")
+
 # --- Build XML ---
-echo "<previous_attempts count=\"$COUNT\" best_score=\"$BEST_SCORE\">"
+echo "<previous_attempts count=\"$COUNT\" best_score=\"$BEST_SCORE\" metric_type=\"$CONTRACT_METRIC_TYPE\" direction=\"$CONTRACT_DIRECTION\">"
 
 echo "$ATTEMPTS" | jq -c '.[]' | while IFS= read -r entry; do
   N=$(echo "$entry" | jq '.attempt')
