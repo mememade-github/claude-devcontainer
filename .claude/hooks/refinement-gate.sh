@@ -90,3 +90,5 @@ jq -n \
     decision: "block",
     reason: ("Refinement loop active: task=" + $task + " score=" + $score + "/" + $thresh + " iteration=" + $iter + "/" + $max + ". Continue refinement or remove .claude/.refinement-active to force stop.")
   }'
+
+exit 0
