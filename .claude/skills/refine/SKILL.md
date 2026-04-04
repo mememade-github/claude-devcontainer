@@ -151,9 +151,11 @@ Current GAPS: <$GAPS array from last evaluation>
 PROTOCOL:
 1. Read .claude/.refine-output to identify which checks are FAILING (metrics with "fail" value).
 2. Read $ATTEMPTS to see which gaps were addressed in prior iterations — avoid re-diagnosing resolved gaps.
-3. For each failing check, read the relevant source code, config, or service state to gather EVIDENCE.
-   - Code checks: Read the referenced file:line, understand the expected vs actual state.
-   - Service checks: Describe what the check expects (do NOT run destructive commands).
+3. For each failing check, gather EVIDENCE across ALL system layers:
+   - Code: Read the referenced file:line, understand expected vs actual state.
+   - Configuration: Check service configs, environment variables, deployment settings.
+   - Infrastructure: Check service limits, resource allocation, runtime parameters.
+   - Identify which layer is the TRUE root cause — code adapting to an infra limitation is a workaround, not a fix.
 4. REGRESSION CHECK: compare current GAPS to previous iteration's GAPS.
    If a previously-passing check now fails, flag it as REGRESSION (highest priority).
 5. Rank remaining failures: REGRESSION > CRITICAL (health, API) > STANDARD (integration) > COSMETIC (branding).
