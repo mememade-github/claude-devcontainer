@@ -15,7 +15,7 @@ Thin orchestrator: main agent drives the loop; all heavy work runs in fresh suba
 - `<task-description>`: What to improve (required)
 - `--max-iter N`: Maximum iterations (default: 10)
 - `--threshold T`: Target score 0.0-1.0 (default: 0.85)
-- `--project PATH`: Project path (default: CLAUDE_PROJECT_DIR)
+- `--project PATH`: Project path (default: CLAUDE_PROJECT_DIR). When `--project PATH` is used, all marker and state files (`.refinement-active`, attempts JSONL, `.refine-output`) are created relative to that PATH, not CLAUDE_PROJECT_DIR.
 - `--agent TYPE`: Agent type for modifications (default: general-purpose)
 
 ## State
@@ -234,6 +234,7 @@ Return to **Step 3** with:
 3. **Metric over judgment** — objective if available; calibrated is last resort
 4. **Baseline must not be perfect** — Contract must distinguish improvement.
    Recalibration: if baseline is perfect (1.0), add stricter checks or introduce additional criteria to lower the baseline score before proceeding.
+   If baseline already meets or exceeds the threshold (e.g., 0.93 >= 0.85), threshold must be raised above baseline or the scorer refined with more granular checks to lower the baseline — otherwise there is nothing to improve.
 5. **Generated tests must fail** — TDD RED principle
 6. **Parse failure = score 0** — treat as crash, DISCARD
 
