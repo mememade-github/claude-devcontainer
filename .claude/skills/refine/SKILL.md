@@ -37,9 +37,25 @@ Three inline operations cover all needs:
 
 ## Protocol
 
-### Step 0: Initialize
+### Step 0: Initialize (pre-flight checks)
+
+**Pre-flight git state check**: before starting the loop, verify git status is clean.
+If uncommitted or modified changes exist, **stash or abort** — DISCARD uses `git checkout` which destroys unsaved work.
 
 ```bash
+# Pre-flight: fail if dirty working tree
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "ERROR: uncommitted/dirty changes — stash or commit before /refine"
+  exit 1  # abort to protect unsaved modifications
+fi
+
+# Check for stale .refinement-active marker from a previous crash/abort
+if [ -f .claude/.refinement-active ]; then
+  echo "WARNING: stale .refinement-active marker already exists (previous crash?)"
+  echo "Remove it manually after verifying no other refine session is running."
+  exit 1
+fi
+
 TASK_ID="refine-$(date +%Y%m%d-%H%M%S)"
 PROJECT="${PROJECT:-$CLAUDE_PROJECT_DIR}"
 THRESHOLD="${THRESHOLD:-0.85}"
@@ -137,11 +153,16 @@ The modifier's 1-line return is the only thing added to the main context.
 
 **objective mode** (no evaluator):
 ```bash
-bash -c "<Contract.verify_cmd>" > .claude/.refine-output 2>&1
+timeout 300 bash -c "<Contract.verify_cmd>" > .claude/.refine-output 2>&1
 SCORE=<parse from .claude/.refine-output>
 SUGGESTION=""
 # Parse failure → SCORE=0
+# Timeout on verify_cmd execution → treat as SCORE=0 (default 300s, adjust per project)
 ```
+
+**Timeout for verify/score command execution**: always wrap verify_cmd with `timeout` to prevent hangs (e.g. build loops, network waits). Default 300 seconds.
+
+**JSON extraction from mixed output**: scorer stdout may contain warnings or debug lines before the JSON result. To parse robustly, extract the last line of JSON from output — use `tail -1` or `grep -o '{.*}'` to filter the final JSON object, then parse with `jq`.
 
 **tool-augmented / calibrated mode** (evaluator subagent):
 
@@ -172,7 +193,7 @@ PREV_BEST=$(jq -s 'sort_by(.score)|last|.score//0' "$ATTEMPTS" 2>/dev/null || ec
 | Condition | Action |
 |---|---|
 | `SCORE > PREV_BEST` | **KEEP**: `git commit -m "refine: $TASK_ID iteration $N — score $SCORE"` |
-| `SCORE <= PREV_BEST` | **DISCARD**: `git checkout -- .` |
+| `SCORE <= PREV_BEST` | **DISCARD**: `git checkout -- . && git clean -fd` (remove untracked files too) |
 | `SCORE >= THRESHOLD` | **ACCEPT**: exit loop |
 
 ### Step 6: Record
