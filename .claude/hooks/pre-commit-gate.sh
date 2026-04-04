@@ -40,26 +40,39 @@ BRANCH_SAFE=$(echo "$BRANCH" | tr '/' '-')
 MARKER="$ACTUAL_ROOT/.claude/.last-verification.$BRANCH_SAFE"
 MAX_AGE=600  # 10 minutes
 
+NEEDS_VERIFICATION=0
+
 if [ ! -f "$MARKER" ]; then
-  echo "Pre-commit verification required. Run verification first:" >&2
-  echo "1. Python: ruff check src/ && mypy src/ --ignore-missing-imports" >&2
-  echo "2. TypeScript: pnpm build" >&2
-  echo "3. Or run: your project verification script (see CLAUDE.md §3)" >&2
-  exit 2
+  NEEDS_VERIFICATION=1
+else
+  MARKER_MTIME=$(stat -c %Y "$MARKER" 2>/dev/null) || NEEDS_VERIFICATION=1
+  if [ "$NEEDS_VERIFICATION" -eq 0 ]; then
+    MARKER_AGE=$(( $(date +%s) - MARKER_MTIME ))
+    if [ "$MARKER_AGE" -gt "$MAX_AGE" ]; then
+      NEEDS_VERIFICATION=1
+    fi
+  fi
 fi
 
-# Check if marker is recent enough
-MARKER_MTIME=$(stat -c %Y "$MARKER" 2>/dev/null) || {
-  echo "FAIL: cannot read verification marker: $MARKER" >&2
-  exit 2
-}
-MARKER_AGE=$(( $(date +%s) - MARKER_MTIME ))
+if [ "$NEEDS_VERIFICATION" -eq 1 ]; then
+  # Try auto-verification for common project types
+  CHECKER="$ACTUAL_ROOT/scripts/meta/completion-checker.sh"
+  if [ -x "$CHECKER" ] || [ -f "$CHECKER" ]; then
+    bash "$CHECKER" >&2
+    VERIFY_EXIT=$?
+    if [ "$VERIFY_EXIT" -eq 0 ]; then
+      exit 0  # checker creates marker on success
+    fi
+    echo "Auto-verification failed (exit $VERIFY_EXIT). Fix issues before committing." >&2
+    exit 2
+  fi
 
-if [ "$MARKER_AGE" -gt "$MAX_AGE" ]; then
-  echo "Verification is stale (${MARKER_AGE}s ago). Run verification again before committing:" >&2
+  # No checker available — provide self-service instructions
+  echo "Verification is stale or missing. Run verification before committing:" >&2
   echo "1. Python: ruff check src/ && mypy src/ --ignore-missing-imports" >&2
   echo "2. TypeScript: pnpm build" >&2
   echo "3. Or run: your project verification script (see CLAUDE.md §3)" >&2
+  echo "Then create the marker: mkdir -p '$ACTUAL_ROOT/.claude' && touch '$MARKER'" >&2
   exit 2
 fi
 
