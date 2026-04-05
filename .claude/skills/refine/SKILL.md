@@ -438,6 +438,24 @@ Run 3: score.sh adds R10-R14 (code quality, branding, integration)
 
 Each new run discovers the evolved scorer and builds a fresh Contract around it.
 
+### Evidence Completeness
+
+> Empirical: a scorer that only tests one interaction layer (e.g. API calls) can reach 1.00
+> while real user-facing failures remain undetected.
+
+Scorer checks should cover all interaction layers that the product exposes:
+
+- **Programmatic**: API calls, CLI invocations, service health endpoints
+- **User interaction**: the actual interface users see and operate (web UI, mobile, desktop)
+- **Failure recovery**: interrupted operations, reconnection, concurrent access, state corruption
+
+When scorer reaches 1.00, evaluate whether all interaction layers are covered.
+If checks exist only at the programmatic layer but the product has a user-facing interface,
+the scorer is incomplete regardless of score — additional checks are needed at other layers.
+
+Agents should install and use standard, widely-adopted testing tools as needed to expand
+evidence coverage across layers (e.g. headless browser testing, load testing, fuzzing).
+
 ### Scorer Independence (Generator ≠ Evaluator)
 
 > Empirical: when the same agent modifies both product code and scorer checks in one pass,
