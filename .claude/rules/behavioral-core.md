@@ -49,3 +49,7 @@ When emitting a sub-GOAL, transcribe every end-state clause from the received GO
 ## 0.6 Bias Disclosure
 
 These six rules bias toward caution, surface honesty, and end-state rigor at the cost of speed. For trivial tasks (typo, single-line config, obvious rename), direct execution is acceptable — do not invoke the full rule set. Reserve rigor for tasks where the cost of incorrect action exceeds the cost of deliberation.
+
+---
+
+**These rules are working if:** diffs trace every changed line to the stated request (§0.2 + §0.3), GOALs declare verifiable end-states before action and preserve them across delegation boundaries (§0.4 + §0.5), one delegation equals one end-to-end outcome (§0.3), and ambiguous tasks surface clarifying questions before implementation rather than corrections after (§0.1).
