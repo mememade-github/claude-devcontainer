@@ -7,7 +7,7 @@ set -e
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-STEP_TOTAL=2
+STEP_TOTAL=3
 STEP=0
 step() { STEP=$((STEP + 1)); echo "[${STEP}/${STEP_TOTAL}] $1"; }
 
@@ -58,7 +58,29 @@ else
 fi
 
 # =============================================================================
-# 3. MCP: 플러그인 제공 (setup-env.sh에서 직접 등록하지 않음)
+# 3. Claude CLI — idempotent 최신 버전 동기화
+# =============================================================================
+# 이미지 빌드 시점에 고정된 CLI 버전 드리프트를 방지하기 위해 컨테이너 시작
+# 시마다 `claude update` 실행. 실패는 소프트 (컨테이너 시작 차단하지 않음).
+# 건너뛰기: SKIP_CLAUDE_UPDATE=1 환경변수.
+step "Claude CLI 버전..."
+if ! command -v claude &>/dev/null; then
+    echo "      WARN: claude CLI 미설치 — 업데이트 건너뜀"
+elif [ "${SKIP_CLAUDE_UPDATE:-}" = "1" ]; then
+    echo "      건너뜀 (SKIP_CLAUDE_UPDATE=1), 현재: $(claude --version 2>/dev/null)"
+else
+    BEFORE=$(claude --version 2>/dev/null | awk '{print $1}')
+    claude update 2>&1 >/dev/null || true
+    AFTER=$(claude --version 2>/dev/null | awk '{print $1}')
+    if [ "$BEFORE" = "$AFTER" ]; then
+        echo "      $AFTER (이미 최신)"
+    else
+        echo "      $BEFORE → $AFTER"
+    fi
+fi
+
+# =============================================================================
+# MCP: 플러그인 제공 (setup-env.sh에서 직접 등록하지 않음)
 # =============================================================================
 # Context7, Serena, Playwright MCP 서버는 Claude Code 플러그인이 자동 관리합니다.
 # 플러그인: context7, serena, playwright (installed_plugins.json)
