@@ -149,11 +149,14 @@ Attempts file: <$ATTEMPTS path>
 Current GAPS: <$GAPS array from last evaluation>
 Skill Library: <$PROJECT/.claude/agent-memory/skills/strategies.jsonl> (if exists)
 Anti-patterns: <$PROJECT/.claude/agent-memory/skills/anti-patterns.jsonl> (if exists)
+Wiki Index: <$PROJECT/.claude/agent-memory/wiki/index.md> (if exists)
 
 PROTOCOL:
 1. Read .claude/.refine-output to identify which checks are FAILING (metrics with "fail" value).
 2. Read $ATTEMPTS to see which gaps were addressed in prior iterations — avoid re-diagnosing resolved gaps.
    Also read any "reflection" and "principle" entries — these are lessons from failed approaches.
+   If wiki/index.md exists, read it to identify relevant strategy/anti-pattern PAGES and
+   load only those pages (selective retrieval). Fall back to JSONL if wiki does not exist.
 3. For each failing check, gather EVIDENCE across ALL system layers:
    - Code: Read the referenced file:line, understand expected vs actual state.
    - Configuration: Check service configs, environment variables, deployment settings.
@@ -292,6 +295,26 @@ On **DISCARD** — record the anti-pattern:
 echo "{\"id\":\"A-$ITERATION\",\"domain\":\"<gap area>\",\"pattern\":\"<what was attempted>\",\"cause\":\"<why it failed>\",\"prevention\":\"<how to avoid>\"}" >> "$SKILLS_DIR/anti-patterns.jsonl"
 ```
 
+**D. Wiki Integration** (if `.claude/agent-memory/wiki/index.md` exists):
+
+```bash
+WIKI_DIR="$PROJECT/.claude/agent-memory/wiki"
+if [ -f "$WIKI_DIR/index.md" ]; then
+  # On KEEP: create/update wiki/strategies/<domain>-<slug>.md
+  #   Include: frontmatter, approach, files modified, score delta
+  #   Add [[wikilinks]] to related anti-patterns and prior strategies
+  #   Update wiki/index.md and append to wiki/log.md
+
+  # On DISCARD: create wiki/anti-patterns/<domain>-<slug>.md
+  #   Include: what was attempted, why it failed, prevention
+  #   Add [[wikilink]] to the strategy it was attempting
+  #   Update wiki/index.md and append to wiki/log.md
+fi
+```
+
+Wiki writes are additive — JSONL is always written first (backward compatibility).
+Projects without wiki initialization work exactly as before.
+
 ### Step 8: Check Termination
 
 ```bash
@@ -325,7 +348,16 @@ if [ "$SCORE" = "1" ] || [ "$SCORE" = "1.0" ] || [ "$SCORE" = "1.00" ]; then
   # Scorer modification happens in a SEPARATE /refine run (scorer independence)
 fi
 
-# 3. Record regressions (any DISCARD that occurred during this run)
+# 3. Wiki scorer insight (if wiki exists)
+WIKI_DIR="$PROJECT/.claude/agent-memory/wiki"
+if [ -f "$WIKI_DIR/index.md" ]; then
+  # Create/update wiki/scorer-insights/<task_id>.md
+  # Include: final score, iterations, threshold, discard count
+  # Cross-reference strategies used during this run
+  # Update wiki/index.md and append to wiki/log.md
+fi
+
+# 4. Record regressions (any DISCARD that occurred during this run)
 DISCARD_COUNT=$(grep -c '"DISCARD' "$ATTEMPTS" 2>/dev/null || echo "0")
 if [ "$DISCARD_COUNT" -gt 0 ]; then
   echo "{\"date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"regressions_during_run\",\"task_id\":\"$TASK_ID\",\"discard_count\":$DISCARD_COUNT}" >> "$SCORER_LOG"
@@ -498,7 +530,7 @@ it receives evidence from a separate Audit agent, not from its own assumptions.
 12. **No dead data** — only store what has a consumer (score, gaps, result, feedback)
 13. **Self-contained** — SKILL.md + evaluator agent + rubric fallback. Portable with `.claude/`
 14. **Evidence before modification** — structurally enforced by Audit→Modify separation
-15. **Scorer independence** — scorer and product code never modified in same iteration (empirical: <internal-rag> 2026-04-04)
+15. **Scorer independence** — scorer and product code never modified in same iteration (empirically validated)
 16. **Reflexion on failure** — DISCARD generates structured reflection + principle for next Audit (verbal RL)
 17. **Skill accumulation** — KEEP→strategies.jsonl, DISCARD→anti-patterns.jsonl (cross-run learning)
 18. **Scorer evolution tracking** — post-run meta-learning records to scorer-evolution.jsonl
