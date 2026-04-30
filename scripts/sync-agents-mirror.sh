@@ -21,6 +21,11 @@
 #
 # 알려진 vendor 손실 (Codex CLI 미지원 frontmatter 필드):
 #   tools / model / color — 무시됨. agents → skills 변환 시 본문은 그대로 유지.
+#
+# Preserve-extras 정책:
+#   각 sub-project가 .agents/ 측에 자체 추가 파일을 보유할 수 있음 (예: <internal-rag>의
+#   vendor-limitations.md, refine/wiki-integration.md). cp -a로 overlay 방식 적용 —
+#   ground-truth 파일은 갱신, dest-only 파일은 보존. 손실 방지.
 # =============================================================================
 set -e
 
@@ -45,14 +50,19 @@ for SUB in rules skills security; do
     [ -d "$SRC_SUB" ] || continue
 
     if [ "$DRY_RUN" -eq 1 ]; then
-        if [ ! -d "$DST_SUB" ] || ! diff -rq "$SRC_SUB" "$DST_SUB" >/dev/null 2>&1; then
-            echo "[DRY] would sync: $SUB/"
+        if [ ! -d "$DST_SUB" ]; then
+            echo "[DRY] would create: $SUB/"
             CHANGED=$((CHANGED + 1))
+        else
+            # Source-side files differing from dest (preserve-extras: ignore dest-only)
+            DIFF=$(diff -rq "$SRC_SUB" "$DST_SUB" 2>/dev/null | grep -v "^Only in $DST_SUB" | wc -l)
+            [ "$DIFF" -gt 0 ] && echo "[DRY] would update: $SUB/ ($DIFF item(s))" && CHANGED=$((CHANGED + 1))
         fi
     else
-        rm -rf "$DST_SUB"
-        cp -r "$SRC_SUB" "$DST_SUB"
-        echo "[SYNC] $SUB/"
+        # Preserve-extras: overlay source onto dest. dest-only files retained.
+        mkdir -p "$DST_SUB"
+        cp -a "$SRC_SUB"/. "$DST_SUB"/
+        echo "[SYNC] $SUB/ (preserve-extras)"
         CHANGED=$((CHANGED + 1))
     fi
 done
