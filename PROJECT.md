@@ -56,7 +56,6 @@ docker-compose.yml: "${HOST_PORT}:${STANDARD_PORT}" 패턴
 |---|:---:|:---:|:---:|:---:|:---:|
 | base | 31000 | 31000 | 31080 | 31432 | 31379 |
 | datascience | 32000 | 32000 | 32080 | 32432 | 32888 (Jupyter) |
-| *(future)* | 33000 | 33000 | 33080 | 33432 | 33xxx |
 
 ## MCP Servers
 
