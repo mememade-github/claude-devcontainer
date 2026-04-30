@@ -3,6 +3,22 @@
 > Actionable commands, configuration, and troubleshooting.
 > For domain context, see [PROJECT.md](PROJECT.md).
 
+## Privilege boundary
+
+This template is **not** a security sandbox. The container mounts the
+host's `/var/run/docker.sock` and the in-container user is in the
+`docker` group, which Docker's official documentation describes as
+equivalent to host root: anyone inside the container can launch
+privileged containers, mount the host filesystem, and execute as root
+on the host. This is required so that commands like
+`docker compose build` and `devcontainer up` from inside the container
+target the *host* daemon (not Docker-in-Docker).
+
+Treat the container as a workspace boundary, not a trust boundary. Do
+not run untrusted code or untrusted MCP tools inside it expecting
+isolation from the host. If host-level isolation matters, run the
+DevContainer inside a VM or on a dedicated machine.
+
 ## Configuration (`.devcontainer/.env`)
 
 All user-tunable values live in `.devcontainer/.env`.
