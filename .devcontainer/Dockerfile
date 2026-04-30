@@ -91,6 +91,17 @@ RUN mkdir /tmp/claude-install && cd /tmp/claude-install \
     && claude --version
 
 # =============================================================================
+# Layer 3.5: Codex CLI — npm global install (parity with Claude)
+# OpenAI Codex CLI는 npm 글로벌 패키지. 사용자 ~/.npm-global에 설치하여
+# root 권한 없이 업데이트/관리 가능. PATH는 .bashrc에 추가.
+# =============================================================================
+RUN mkdir -p ${HOME}/.npm-global \
+    && npm config set prefix "${HOME}/.npm-global" \
+    && npm install -g @openai/codex \
+    && echo 'export PATH="${HOME}/.npm-global/bin:${PATH}"' >> ${HOME}/.bashrc \
+    && ${HOME}/.npm-global/bin/codex --version
+
+# =============================================================================
 # Layer 4: Node.js — Project (optional)
 # 시스템 Node.js(Layer 1)와 별도로, 프로젝트 전용 버전이 필요할 때만 nvm 설치.
 # 미설정 시 시스템 Node.js(LTS)만 사용.

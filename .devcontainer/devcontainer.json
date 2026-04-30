@@ -100,11 +100,13 @@
   // Mounts
   // SSH: 호스트 키 바인드 (git push/pull)
   // Claude config: 인증 토큰 영속 (rebuild 후에도 유지)
+  // Codex config: 인증 토큰 영속 (rebuild 후에도 유지)
   // Command history: 명령 히스토리 영속
   // ==========================================================================
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
     "source=claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=codex-config-${devcontainerId},target=/home/vscode/.codex,type=volume",
     "source=command-history-${devcontainerId},target=/commandhistory,type=volume"
   ]
 }
