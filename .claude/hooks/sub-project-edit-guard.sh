@@ -35,9 +35,9 @@ case "$FILE_PATH" in
   *)  FILE_PATH="${PROJECT_ROOT}/$FILE_PATH" ;;
 esac
 
-SUB_PROJECTS=(
-  "<sub-project-root>"
-)
+# Register absolute paths of §6-bearing sub-projects below.
+# This template ships empty; each consuming workspace adds its own entries.
+SUB_PROJECTS=()
 
 for sp in "${SUB_PROJECTS[@]}"; do
   case "$FILE_PATH" in

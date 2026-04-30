@@ -76,11 +76,11 @@ done
 [ "$total" -eq 2 ] && record PASS "Agent count: $total (evaluator, wip-manager)" || record FAIL "Agent count: $total (expected 2)"
 record PASS "Agent frontmatter ($count/$total)"
 
-# --- PHASE 2c: Skills (Tier 1: 4) ---
+# --- PHASE 2c: Skills (Tier 1: 4 + karpathy-guidelines reference) ---
 echo ""
 echo "=== Phase 2c: Skills ==="
 skills=$(ls /workspaces/.claude/skills/*/SKILL.md 2>/dev/null | wc -l)
-[ "$skills" -eq 4 ] && record PASS "Skills: $skills/4 (refine, status, verify, wiki)" || record FAIL "Skills: $skills (expected 4)"
+[ "$skills" -eq 5 ] && record PASS "Skills: $skills/5 (refine, status, verify, wiki, karpathy-guidelines)" || record FAIL "Skills: $skills (expected 5)"
 
 # --- PHASE 2d: Rules (Tier 1: 2 portable) ---
 echo ""

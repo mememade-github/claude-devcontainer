@@ -1,20 +1,18 @@
 # =============================================================================
-# .gitlab-ci.yml — GitHub → GitLab Pull Mirror (CI scheduled pipeline)
+# .gitlab-ci.yml — GitHub → GitLab pull-mirror via scheduled CI pipeline
 # =============================================================================
-# GitLab CE의 Pull Mirror는 Premium 전용이므로 CI scheduled pipeline으로 대체.
-# 본 파일은 사내 GitLab Runner가 등록된 후 자동 작동합니다.
+# GitLab CE's built-in Pull Mirror is a Premium feature, so this scheduled
+# pipeline replaces it for self-hosted CE/Free instances.
 #
-# 등록 절차:
-#   1. <gitlab-server> (<gitlab-host>) 또는 별도 사내 노드에 GitLab Runner 등록
-#      (참고: gitlab-runner register --url https://<gitlab-host>:<port> ...)
-#   2. GitLab UI → 본 프로젝트 → CI/CD → Schedules → New schedule
-#      - Description: "Mirror from GitHub"
-#      - Interval: */30 * * * *  (또는 원하는 주기)
-#      - Target branch: main
-#   3. CI/CD → Variables 에 GITLAB_PUSH_TOKEN 등록 (Project Access Token, scope=write_repository)
-#
-# Runner 등록 전까지는 /workspaces/scripts/git/push-mirror-polyagent.sh 가
-# 동일 작업을 수행합니다 (ROOT 워크스페이스에서 명시적 호출).
+# Activation (consumer side):
+#   1. Register a GitLab Runner that has network access to github.com.
+#      (gitlab-runner register --url <your-gitlab-url> ...)
+#   2. GitLab UI → Project → CI/CD → Schedules → New schedule
+#        Description: "Mirror from GitHub"
+#        Interval:    */30 * * * *   (or whatever cadence you want)
+#        Target branch: main
+#   3. CI/CD → Variables → add GITLAB_PUSH_TOKEN
+#        Project Access Token, scope = write_repository.
 # =============================================================================
 
 stages:

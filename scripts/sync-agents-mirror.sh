@@ -1,31 +1,31 @@
 #!/bin/bash
 # =============================================================================
-# sync-agents-mirror.sh — .claude/ → .agents/ 단방향 미러
+# sync-agents-mirror.sh — one-way mirror of .claude/ into .agents/
 # =============================================================================
-# Claude Code 자산(`.claude/`)을 Codex CLI 호환 형식(`.agents/`)으로 동기화.
-# Ground truth는 `.claude/`. `.agents/`는 자동 생성된 미러이므로 직접 수정 금지.
+# Mirrors Claude Code assets (`.claude/`) into Codex-compatible form (`.agents/`).
+# `.claude/` is the ground truth; `.agents/` is generated — do not edit by hand.
 #
-# 사용:
-#   bash scripts/sync-agents-mirror.sh         # 미러 갱신
-#   bash scripts/sync-agents-mirror.sh --dry   # 변경 사항만 표시
+# Usage:
+#   bash scripts/sync-agents-mirror.sh         # update mirror
+#   bash scripts/sync-agents-mirror.sh --dry   # show pending changes only
 #
-# 동기화 매핑:
-#   .claude/rules/        → .agents/rules/        (디렉토리 단순 복사)
-#   .claude/skills/       → .agents/skills/       (디렉토리 단순 복사)
-#   .claude/security/     → .agents/security/     (디렉토리 단순 복사)
-#   .claude/agents/<X>.md → .agents/skills/<X>/SKILL.md  (단일 파일 → 스킬 디렉토리)
+# Mapping:
+#   .claude/rules/        → .agents/rules/        (directory copy)
+#   .claude/skills/       → .agents/skills/       (directory copy)
+#   .claude/security/     → .agents/security/     (directory copy)
+#   .claude/agents/<X>.md → .agents/skills/<X>/SKILL.md  (file → skill directory)
 #
-# 동기화 제외:
-#   .claude/hooks/    — Codex는 .codex/hooks/ 별도 관리
-#   .claude/settings.json — Claude 전용
+# Excluded from sync:
+#   .claude/hooks/         — Codex uses .codex/hooks/ separately
+#   .claude/settings.json  — Claude-only
 #
-# 알려진 vendor 손실 (Codex CLI 미지원 frontmatter 필드):
-#   tools / model / color — 무시됨. agents → skills 변환 시 본문은 그대로 유지.
+# Known vendor losses (frontmatter fields Codex CLI does not honor):
+#   tools / model / color — silently ignored; body is preserved verbatim.
 #
-# Preserve-extras 정책:
-#   각 sub-project가 .agents/ 측에 자체 추가 파일을 보유할 수 있음 (예: <internal-rag>의
-#   vendor-limitations.md, refine/wiki-integration.md). cp -a로 overlay 방식 적용 —
-#   ground-truth 파일은 갱신, dest-only 파일은 보존. 손실 방지.
+# Preserve-extras policy:
+#   Consumers may add files under .agents/ that have no source counterpart
+#   (project-local extensions, additional skills). `cp -a` overlay updates
+#   ground-truth files but leaves dest-only files in place, preventing loss.
 # =============================================================================
 set -e
 
