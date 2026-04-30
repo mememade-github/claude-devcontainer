@@ -25,6 +25,7 @@ Skip protocol: an iteration on an already-`active` component (frontmatter or bod
 | skills/wiki | Cross-document knowledge base build / query / lint | MEMEMADE | 1.0.0 | `Agent` tool | 2026-04-28 | suite written, manual run pending | `reviewed` |
 | skills/status | Workspace-wide health snapshot | MEMEMADE | 1.0.0 | `scripts/git/git-status.sh`, Docker daemon | 2026-04-28 | suite written, manual run pending | `reviewed` |
 | skills/verify | Pre-commit verification dispatcher | MEMEMADE | 1.0.0 | `scripts/meta/completion-checker.sh`, `pre-commit-gate.sh` | 2026-04-28 | suite written, manual run pending | `reviewed` |
+| skills/karpathy-guidelines | Karpathy 4-rule reference handle (read-only prompt text) | forrestchang (upstream); MEMEMADE (mirror) | 1.0.0 | none — no tools, no callees | 2026-04-30 | upstream-aligned (verbatim); no eval suite required | `active` |
 | agents/evaluator | 1-pass review / `/refine` iteration scorer | MEMEMADE | 1.0.0 | invoked by ROOT or `/refine`; no callees | 2026-04-28 | suite written, manual run pending | `reviewed` |
 | agents/wip-manager | Multi-session task state author/resumer | MEMEMADE | 1.0.0 | `wip/` directory; invoked by ROOT | 2026-04-28 | suite written, manual run pending | `reviewed` |
 
@@ -58,9 +59,9 @@ row — whichever is latest.
 ## Verification — end-state for Phase 4
 
 ```bash
-# Six rows expected — 4 skills + 2 agents
+# Seven rows expected — 5 skills + 2 agents
 rows=$(awk '/^\| skills\/|^\| agents\//{c++} END{print c}' /workspaces/.claude/security/registry.md)
-[ "$rows" -eq 6 ] && echo "PASS (rows=$rows)" || echo "FAIL (expected 6, got $rows)"
+[ "$rows" -eq 7 ] && echo "PASS (rows=$rows)" || echo "FAIL (expected 7, got $rows)"
 ```
 
 ---

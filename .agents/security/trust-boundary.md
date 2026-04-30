@@ -27,7 +27,7 @@ records each component's deviation and its justification, per Karpathy R1.1.
 
 ---
 
-## Components — 12 entities
+## Components — 13 entities
 
 ### Agents (2)
 
@@ -52,7 +52,7 @@ records each component's deviation and its justification, per Karpathy R1.1.
 #### 3. `hooks/session-start.sh`
 - **Role**: SessionStart hook. Injects project context + WIP auto-resume + env check.
 - **Trust scope (read)**: `.git/`, `wip/`, `MEMORY.md`, branch state.
-- **Trust scope (write)**: stdout JSON only (no filesystem writes).
+- **Trust scope (write)**: stdout JSON + stale `.claude/.last-verification.<branch>` cleanup (`rm -f`).
 - **Tool scope**: shell built-ins + `git`, `jq`. No network.
 - **Invocation**: triggered automatically by Claude Code at session start.
 - **Karpathy-baseline delta**: code execution present. Justification: read-only context aggregation; no decision authority.
@@ -84,7 +84,7 @@ records each component's deviation and its justification, per Karpathy R1.1.
 #### 7. `hooks/pre-push-gate.sh`
 - **Role**: PreToolUse hook (Bash matcher, `git push*`). 3-layer progressive hardening — Layer 1 blocks PAT residue in remote URL; Layer 2 warns on remote URL drift; Layer 3 (opt-in) blocks `.push-remote` declaration mismatch.
 - **Trust scope (read)**: `git remote -v` output, hook input JSON, optional `.push-remote` file.
-- **Trust scope (write)**: stderr only.
+- **Trust scope (write)**: stderr + `.claude/.last-push-url.<remote>` baseline file (Layer 2 drift detection).
 - **Tool scope**: shell built-ins + `git`, `grep`. No network.
 - **Invocation**: triggered for `git push` Bash calls.
 - **Karpathy-baseline delta**: same as meta-evolution-guard. Same justification. Note: Layer 1 already covers credential-residue at push time — additional runtime credential-mask hook would duplicate this control (Karpathy R1.3 surgical avoidance).
@@ -97,7 +97,7 @@ records each component's deviation and its justification, per Karpathy R1.1.
 - **Invocation**: triggered at every Stop event.
 - **Karpathy-baseline delta**: same as meta-evolution-guard. Same justification.
 
-### Skills (4)
+### Skills (5)
 
 #### 9. `skills/refine/SKILL.md`
 - **Role**: Autonomous exploratory improvement loop — thin orchestrator with fresh-context agents.
@@ -131,6 +131,14 @@ records each component's deviation and its justification, per Karpathy R1.1.
 - **Invocation**: user-invocable via `/verify`.
 - **Karpathy-baseline delta**: narrowest of all skills. Code execution present (must run tests). Closest to baseline along with `/status`.
 
+#### 13. `skills/karpathy-guidelines/SKILL.md`
+- **Role**: Reference handle for the Karpathy 4 rules. Loaded on demand by evaluator agent or explicit invocation; not user-invocable as a `/command`.
+- **Trust scope (read)**: own `SKILL.md` + `EXAMPLES.md` body only.
+- **Trust scope (write)**: none.
+- **Tool scope**: none (prompt-text only; no `allowed-tools` declared in frontmatter).
+- **Invocation**: passive — Read-tool fetched by other agents/skills as a behavioral reference.
+- **Karpathy-baseline delta**: zero — this skill is Karpathy upstream verbatim (MIT). Closest to baseline of all components.
+
 ### Wiring — `settings.json`
 
 `settings.json` declares the hook bindings. It is the trust-boundary integration point — every PreToolUse / Stop / SessionStart hook listed above is registered there. Hooks not listed in `settings.json` do not fire even if present in `hooks/`.
@@ -157,7 +165,7 @@ This document is correct iff:
 Check command:
 
 ```bash
-# Component count match (expect: 2 + 6 + 4 = 12)
+# Component count match (expect: 2 + 6 + 5 = 13)
 expected=$(( $(ls /workspaces/.claude/agents/*.md 2>/dev/null | wc -l) \
           + $(ls /workspaces/.claude/hooks/*.sh 2>/dev/null | wc -l) \
           + $(ls -d /workspaces/.claude/skills/*/ 2>/dev/null | wc -l) ))
