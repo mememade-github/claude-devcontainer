@@ -1,6 +1,6 @@
 # Polyagent DevContainer
 
-Isolated DevContainer template for running multiple AI coding agents (Claude Code · Codex CLI) in parity on the same project, with Cursor as a config-only mirror.
+DevContainer template for running multiple AI coding agents (Claude Code · Codex CLI) in parity on the same project, with Cursor as a config-only mirror. The container is workspace-scoped, not a security sandbox — see [REFERENCE.md § Privilege boundary](REFERENCE.md#privilege-boundary) for the docker.sock / docker-group implications.
 
 Single ground truth (`.claude/`) + per-vendor mirror (`.agents/`, `.codex/`, `.cursor/rules/`). Adding a new vendor reuses the mirror pattern instead of rewriting governance.
 
