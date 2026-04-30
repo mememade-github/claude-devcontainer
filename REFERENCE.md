@@ -35,13 +35,14 @@ When changing ports, update both `.env` and `forwardPorts` and rebuild.
 ## Runtime isolation
 
 ```
-Claude Code infrastructure (kept separate from project code):
+AI agent infrastructure (kept separate from project code):
   Claude Code → native binary (~/.local/bin/claude, auto-updated)
-  Node.js     → for Context7 MCP only (nvm, Node 22 LTS)
-  Python      → for Serena MCP only (system python3, uv, ~/work/serena)
+  Codex CLI   → npm global (~/.npm-global/bin/codex)
+  Node.js     → Node 22 LTS for Codex CLI infrastructure
+  Python      → system python3 + uv (general development)
 
 Project code (when PROJECT_NODE_VERSION is set):
-  Node.js → project-node (nvm alias, .nvmrc auto-applied) on top of MCP node
+  Node.js → project-node (nvm alias, .nvmrc auto-applied)
   Python  → install via deadsnakes / pyenv / etc.
   Other   → Go, Rust, etc. installed freely.
 
@@ -54,9 +55,9 @@ Aliases:
 
 ```
 postCreateCommand (setup-env.sh — once)
-  [1/2] permissions (Docker socket, git filemode, command history)
-  [2/2] SSH (when host keys are bound)
-  MCP plugins managed automatically (Context7, Serena, Playwright)
+  [1/3] permissions (Docker socket, git filemode, command history)
+  [2/3] SSH (when host keys are bound)
+  [3/3] Claude CLI version sync
 
 postStartCommand (every start)
   git config core.filemode false
@@ -80,10 +81,10 @@ postStartCommand (every start)
 | Container | docker CLI, docker compose v2, devcontainer CLI |
 | Editor | vim, nano |
 | Network | curl, wget, openssh-client |
-| Claude | Claude Code CLI, Context7 MCP, Serena MCP |
+| Claude | Claude Code CLI |
 | Codex | Codex CLI (npm global), AGENTS.md, `.codex/` hooks |
 | Node.js | Node 22 LTS, npm, npx |
-| Python | python3, uv, jedi (Serena), ruff, pytest, mypy |
+| Python | python3, uv, ruff, pytest, mypy |
 
 ## Agent system
 
@@ -149,7 +150,6 @@ codex --version
 | Codex re-auth needed | check named volume: `docker volume ls \| grep codex-config` |
 | Wrong Node version | `nvm use` or create `.nvmrc` |
 | Port collision | edit `.env` `PORT_*` + `devcontainer.json` `forwardPorts`, rebuild |
-| MCP connection fails | `rm ~/.claude.json && /usr/local/bin/setup-env.sh` |
 | Hook test fails | `export CLAUDE_PROJECT_DIR=/workspaces` (Codex: `CODEX_PROJECT_DIR`) |
 | Git permission errors | `git config core.filemode false` |
 | `.agents/` drift | `bash scripts/sync-agents-mirror.sh` |

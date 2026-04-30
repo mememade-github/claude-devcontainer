@@ -10,15 +10,3 @@ ask_for_approval = "on-request"
 
 [features]
 codex_hooks = true
-
-# --- MCP servers ---
-# Context7(문서)·Serena(코드 인텔리전스) MCP는 DevContainer 레벨에서 관리됨.
-# 프로젝트 레벨에서 추가 MCP 서버가 필요하면 아래 예시를 참고하여 등록:
-#
-# [mcp_servers.context7]
-# command = "npx"
-# args = ["-y", "@upstash/context7-mcp"]
-#
-# [mcp_servers.serena]
-# command = "uvx"
-# args = ["--from", "git+https://github.com/oraios/serena", "serena-mcp-server"]

@@ -8,17 +8,16 @@
 
 Isolated environment for running Claude Code and Codex CLI in parity on the same project. One ground truth (`.claude/`) feeds per-vendor mirrors (`.agents/`, `.codex/`). New vendors are added by mirroring, not by rewriting governance.
 
-Default loadout: 2 sub-agents · 6 hooks (Claude) / 4 hooks (Codex) · 4 skills · 2 MCP servers (Context7, Serena).
+Default loadout: 2 sub-agents · 6 hooks (Claude) / 4 hooks (Codex) · 4 skills.
 
 ## Tech Stack
 
 | Category | Technology |
 |----------|-----------|
 | Container | Docker Compose, DevContainer spec |
-| Runtime | Ubuntu 22.04, Node.js 22 LTS (MCP/Codex), Python 3 (Serena) |
+| Runtime | Ubuntu 22.04, Node.js 22 LTS, Python 3 |
 | AI Agents | Claude Code CLI, OpenAI Codex CLI |
-| MCP | Context7 (documentation), Serena (code intelligence) |
-| Tools | ripgrep, fd, jq, tmux, gh CLI, docker CLI |
+| Tools | ripgrep, fd, jq, tmux, gh CLI, docker CLI, uv |
 
 ## Polyagent Parity Model
 
@@ -32,13 +31,6 @@ Sync: `bash scripts/sync-agents-mirror.sh` — `.claude/` → `.agents/` one-way
 ## Ports
 
 Default port band: 31000. Mapping is HOST 3xxxx → CONTAINER standard (3000, 8080, 5432, 6379). All values are configured in `.devcontainer/.env`. Full table in [REFERENCE.md](REFERENCE.md#ports).
-
-## MCP Servers
-
-| Server | Purpose |
-|--------|---------|
-| Context7 | Library documentation search |
-| Serena | Code intelligence (Python) |
 
 ## Environment
 

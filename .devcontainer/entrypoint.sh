@@ -2,18 +2,18 @@
 # =============================================================================
 # Polyagent DevContainer — Container Entrypoint
 # =============================================================================
-# 컨테이너 시작 시 항상 실행됨.
-# docker compose up -d, VS Code Reopen in Container 모두 이 스크립트를 통과.
-# → MCP(Context7, Serena) 및 환경 설정이 항상 보장됨.
+# Runs on every container start. Both `docker compose up -d` and VS Code's
+# "Reopen in Container" path through this script, so environment setup is
+# always applied.
 #
-# VS Code는 추가로 postCreateCommand(setup-env.sh)를 실행하지만
-# setup-env.sh는 idempotent이므로 2회 실행해도 안전.
+# VS Code additionally runs postCreateCommand (setup-env.sh) once, but
+# setup-env.sh is idempotent — running it twice is safe.
 # =============================================================================
 
-# MCP 및 환경 설정 실행 (실패해도 컨테이너 시작 중단하지 않음)
+# Run environment setup (non-fatal if it errors out)
 if [ -x "/usr/local/bin/setup-env.sh" ]; then
     /usr/local/bin/setup-env.sh 2>&1 || echo "[entrypoint] WARN: setup-env.sh exited with error (non-fatal)"
 fi
 
-# 전달된 명령 실행 (기본값: sleep infinity)
+# Execute the passed command (default: sleep infinity)
 exec "$@"

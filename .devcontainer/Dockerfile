@@ -1,19 +1,15 @@
 # =============================================================================
 # Polyagent DevContainer — Universal Base Template
 # =============================================================================
-# Claude Code CLI + Codex CLI + Serena MCP + Shell 도구 + Agent System
-# 프로젝트 언어/프레임워크는 사용자가 직접 설치 (Go, Rust, Java, etc.)
+# Claude Code CLI + Codex CLI + Shell tools + Agent System
+# Project language/framework installed by the user (Go, Rust, Java, etc.)
 #
-# Runtime 격리 (AI 에이전트 인프라 ≠ 프로젝트 코드):
-#   Claude Code — 네이티브 바이너리 (~/.local/bin/claude, 자동 업데이트)
+# Runtime layout:
+#   Claude Code — native binary (~/.local/bin/claude, auto-updated)
 #   Codex CLI   — npm global (~/.npm-global/bin/codex)
-#   Node.js     — Context7 MCP / Codex CLI 인프라 (nvm, MCP_NODE_VERSION=22)
-#   Python      — Serena MCP 전용 (시스템 python3, uv)
-#   프로젝트용 Node.js는 PROJECT_NODE_VERSION으로 추가 설치 가능
-#
-# Variants:
-#   polyagent-devcontainer (base)         ← THIS (범용 베이스)
-#   polyagent-devcontainer (datascience)  ← Jupyter + Data Science (variants/datascience/)
+#   Node.js     — Node 22 LTS for Codex CLI infrastructure
+#   Python      — system python3 + uv (general development)
+#   Project Node.js can be installed via PROJECT_NODE_VERSION
 # =============================================================================
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 
@@ -41,11 +37,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
     build-essential git git-lfs curl wget less procps sudo ca-certificates gnupg2 openssh-client \
     ripgrep fd-find fzf tree htop vim nano zsh tmux jq unzip zip man-db gh \
-    # Python — Serena MCP 인프라용 (프로젝트 코드와 무관)
+    # Python — general development (project code, refinement loop verification)
     python3 python3-pip python3-venv \
     docker.io \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    # Node.js LTS — Context7 MCP 인프라용 (시스템 패키지, Claude 네이티브에서 직접 접근)
+    # Node.js LTS — Codex CLI infrastructure
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @devcontainers/cli \
@@ -57,12 +53,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -SL "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-# Python 도구: LSP (Serena) + 정제 루프 검증 도구 (verify-score.sh 의존)
-# Poetiq sandbox가 numpy/scipy를 사전 설치하듯, 우리 sandbox(verify-score.sh)는
-# ruff/pytest/mypy로 결정론적 보상 신호를 생성한다. 미설치 시 score=0 (루프 무의미).
-# --break-system-packages: pip 23.0+ 필수, Ubuntu 22.04 기본 pip(22.x)에서는 미지원
+# Python tools — refinement loop verification (verify-score.sh dependency)
+# ruff/pytest/mypy provide deterministic reward signals for the refinement loop.
+# Without them, score=0 (loop becomes meaningless).
+# --break-system-packages: required since pip 23.0+; Ubuntu 22.04 default pip (22.x) does not need it.
 RUN pip3 install --no-cache-dir $(pip3 install --help 2>&1 | grep -q break-system-packages && echo "--break-system-packages") \
-    jedi ruff pytest mypy
+    ruff pytest mypy
 
 # =============================================================================
 # Layer 2: 사용자 설정 (root → vscode)
@@ -117,28 +113,9 @@ RUN if [ -n "${PROJECT_NODE_VERSION}" ]; then \
     fi
 
 # =============================================================================
-# Layer 5: Serena MCP — 코드 인텔리전스
-# Node.js(시스템)가 Context7 MCP 인프라이듯, Python은 Serena MCP용 인프라.
+# Layer 5: uv — Python package manager (pinned for reproducibility)
 # =============================================================================
-# uv (Python 패키지 관리 — pinned version for reproducibility)
 RUN curl -LsSf https://astral.sh/uv/0.6.0/install.sh | sh
-
-# Serena 설치
-RUN mkdir -p ${HOME}/work \
-    && cd ${HOME}/work \
-    && git clone https://github.com/oraios/serena.git \
-    && cd serena \
-    && ${HOME}/.local/bin/uv sync
-
-# Serena 설정
-RUN mkdir -p ${HOME}/.serena \
-    && if [ -f "${HOME}/work/serena/src/serena/resources/serena_config.template.yml" ]; then \
-        cp ${HOME}/work/serena/src/serena/resources/serena_config.template.yml ${HOME}/.serena/serena_config.yml; \
-    else \
-        echo -e "web_dashboard: false\nweb_dashboard_open_on_launch: false" > ${HOME}/.serena/serena_config.yml; \
-    fi \
-    && sed -i 's/web_dashboard: [Tt]rue/web_dashboard: false/g' ${HOME}/.serena/serena_config.yml \
-    && sed -i 's/web_dashboard_open_on_launch: [Tt]rue/web_dashboard_open_on_launch: false/g' ${HOME}/.serena/serena_config.yml
 
 # =============================================================================
 # Layer 6: 사용자 설정 (shell, editor, git)
@@ -187,7 +164,7 @@ RUN chmod 755 /usr/local/bin/setup-env.sh /usr/local/bin/entrypoint.sh
 USER ${USERNAME}
 WORKDIR /workspaces
 
-# ENTRYPOINT: 컨테이너 시작 시 항상 실행 (docker compose up -d 포함)
-# → setup-env.sh 자동 실행 → MCP 항상 설정됨
+# ENTRYPOINT: runs on every container start (including docker compose up -d)
+# → setup-env.sh auto-runs to set permissions, SSH, and Claude CLI version sync.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["sleep", "infinity"]

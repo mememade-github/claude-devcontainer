@@ -24,20 +24,6 @@ node --version > /dev/null 2>&1 && record PASS "node ($(node --version))" || rec
 /home/vscode/.local/bin/uv --version > /dev/null 2>&1 && record PASS "uv" || record FAIL "uv"
 python3 --version > /dev/null 2>&1 && record PASS "python3 ($(python3 --version 2>&1))" || record FAIL "python3"
 
-# --- PHASE 1b: MCP ---
-echo ""
-echo "=== Phase 1b: MCP ==="
-[ -x "/home/vscode/.local/bin/uv" ] && record PASS "Serena uv path (/home/vscode/.local/bin/uv)" || record FAIL "Serena uv path"
-[ -d "/home/vscode/work/serena" ] && record PASS "Serena dir (/home/vscode/work/serena)" || record FAIL "Serena dir"
-if [ -f /home/vscode/.claude.json ] && grep -qE '"context7"|"serena"' /home/vscode/.claude.json 2>/dev/null; then
-    ctx=$(grep -c '"context7"' /home/vscode/.claude.json 2>/dev/null | tr -d '[:space:]')
-    ser=$(grep -c '"serena"' /home/vscode/.claude.json 2>/dev/null | tr -d '[:space:]')
-    [ "${ctx:-0}" -gt 0 ] && record PASS "MCP context7" || record FAIL "MCP context7"
-    [ "${ser:-0}" -gt 0 ] && record PASS "MCP serena" || record FAIL "MCP serena"
-else
-    echo "SKIP: MCP context7/serena (plugins not yet registered — run setup-env.sh + claude first)"
-fi
-
 # --- PHASE 2: Config files ---
 echo ""
 echo "=== Phase 2: Config Files ==="

@@ -36,8 +36,7 @@ The `--dangerously-bypass-approvals-and-sandbox` flag is needed because Codex's 
 | Sub-agents (Claude) | 2 | evaluator, wip-manager |
 | Hooks | 6 (Claude) / 4 (Codex) | session-start, pre-commit-gate, pre-push-gate, refinement-gate, +2 Claude-only |
 | Skills | 4 | /refine, /status, /verify, /wiki |
-| MCP servers | 2 | Context7 (docs), Serena (code intelligence) |
-| Tools | 20+ | ripgrep, fd, fzf, jq, tmux, gh, docker CLI |
+| Tools | 20+ | ripgrep, fd, fzf, jq, tmux, gh, docker CLI, uv |
 
 ## Ports
 
@@ -89,7 +88,6 @@ Always use **Reopen in Container** (`Ctrl+Shift+P`). Attach connects to a runnin
 | Reopen menu missing | Install the Dev Containers extension |
 | Claude re-auth needed | `docker volume ls \| grep claude-config` |
 | Codex re-auth needed | `docker volume ls \| grep codex-config` |
-| MCP connection fails | `rm ~/.claude.json && /usr/local/bin/setup-env.sh` |
 | Port collision | Edit `.env` PORT_* + `devcontainer.json` forwardPorts, rebuild |
 | `.agents/` drift | `bash scripts/sync-agents-mirror.sh` |
 

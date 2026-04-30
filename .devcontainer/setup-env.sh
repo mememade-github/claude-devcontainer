@@ -80,14 +80,6 @@ else
 fi
 
 # =============================================================================
-# MCP: plugin-managed (this script does not register manually)
-# =============================================================================
-# Context7, Serena, Playwright MCP servers are managed by Claude Code plugins
-# (installed_plugins.json). Registering them again in ~/.claude.json would
-# list the tools twice and spawn duplicate server processes.
-# Removed on 2026-03-28: plugin/manual double-registration resolution.
-
-# =============================================================================
 # Project-specific setup (separate file)
 # Custom per-project setup goes in setup-env.project.sh.
 # =============================================================================
@@ -105,8 +97,6 @@ echo ""
 echo "=============================================="
 echo "  Setup Complete!"
 echo "=============================================="
-echo ""
-echo "MCP: managed by plugins (context7, serena, playwright)"
 echo ""
 echo "Start:  claude"
 echo ""

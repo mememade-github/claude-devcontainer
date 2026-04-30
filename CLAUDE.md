@@ -25,7 +25,7 @@ The same 4 rules are also exposed as a skill at [`.claude/skills/karpathy-guidel
 │   └── rules/                      # Standard rules + project/ subdirectory
 ├── .agents/                        # Codex agent assets (mirror of .claude/, generated)
 ├── .codex/                         # Codex CLI configuration
-│   ├── config.toml                 # MCP, sandbox, approval policy
+│   ├── config.toml                 # Sandbox, approval policy
 │   ├── hooks.json                  # Event hooks
 │   ├── hooks/                      # 4 hook scripts
 │   └── state/                      # Runtime markers (gitignored)
@@ -91,10 +91,9 @@ bash scripts/sync-agents-mirror.sh --dry   # diff only
 - **Ports**: `.devcontainer/.env` (`PORT_APP`, `PORT_API`, `PORT_DB`, `PORT_EXTRA`).
 - **Claude Code**: native binary (`~/.local/bin/claude`, auto-updated).
 - **Codex CLI**: npm global (`~/.npm-global/bin/codex`).
-- **Node.js**: Node 22 LTS for MCP infrastructure. Additional version installed if `PROJECT_NODE_VERSION` is set.
+- **Node.js**: Node 22 LTS installed for Codex CLI. Additional version installed if `PROJECT_NODE_VERSION` is set.
 - **Persistent volumes**: `~/.claude`, `~/.codex`, `/commandhistory`.
 - **9p mount**: `core.filemode=false` (auto-applied by `postStartCommand`).
-- **MCP**: Context7, Serena (managed at the DevContainer level).
 
 ## Extended reference
 

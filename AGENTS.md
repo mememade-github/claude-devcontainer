@@ -22,7 +22,7 @@ Skill mirror: [`.agents/skills/karpathy-guidelines/`](.agents/skills/karpathy-gu
 ├── PROJECT.md                      # Domain context (customize per project)
 ├── REFERENCE.md                    # Commands and procedures
 ├── .codex/                         # Codex CLI configuration
-│   ├── config.toml                 # MCP, sandbox, approval policy
+│   ├── config.toml                 # Sandbox, approval policy
 │   ├── hooks.json                  # Event hook registrations
 │   ├── hooks/                      # 4 hook scripts
 │   └── state/                      # Runtime markers (gitignored)
@@ -102,16 +102,15 @@ Codex CLI does not yet support file-based custom sub-agent declarations, so the 
 - **Ports**: `.devcontainer/.env` (`PORT_APP`, `PORT_API`, `PORT_DB`, `PORT_EXTRA`).
 - **Claude Code**: native binary (`~/.local/bin/claude`, auto-updated).
 - **Codex CLI**: npm global (`~/.npm-global/bin/codex`).
-- **Node.js**: Node 22 LTS for MCP infrastructure. Additional version installed if `PROJECT_NODE_VERSION` is set.
+- **Node.js**: Node 22 LTS installed for Codex CLI. Additional version installed if `PROJECT_NODE_VERSION` is set.
 - **Persistent volumes**: `~/.claude`, `~/.codex`, `/commandhistory`.
 - **9p mount**: `core.filemode=false` (auto-applied by `postStartCommand`).
-- **MCP**: Context7, Serena (managed at the DevContainer level).
 
 ## Codex-specific paths
 
 | Path | Purpose |
 |------|---------|
-| `.codex/config.toml` | MCP servers, sandbox/approval policy |
+| `.codex/config.toml` | Sandbox/approval policy |
 | `.codex/hooks.json` | Event hook registrations |
 | `.codex/hooks/` | 4 hook scripts (session-start, pre-commit-gate, pre-push-gate, refinement-gate) |
 | `.codex/state/` | Runtime markers (gitignored) |
