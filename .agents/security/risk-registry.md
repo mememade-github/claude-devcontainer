@@ -29,7 +29,7 @@
 
 ---
 
-## Registry — 12 components × 7 axes
+## Registry — 13 components × 7 axes
 
 | # | Component | A1 code | A2 manip | A3 MCP | A4 net | A5 cred | A6 fs scope | A7 tools |
 |---|-----------|---------|----------|--------|--------|---------|-------------|----------|
@@ -45,6 +45,7 @@
 | 10 | skills/wiki/SKILL.md | clean | clean | clean | doc-ref (Karpathy gist link) | clean | wiki source/output | active (Bash, Edit, Write, Read, Grep, Glob, **Agent**) |
 | 11 | skills/status/SKILL.md | clean | clean | clean | clean | clean | read-only (`.git/`, ports) | active (Bash, Read, Grep, Glob) |
 | 12 | skills/verify/SKILL.md | clean | clean | clean | clean | clean | read + `.last-verification` write | active (Bash, Read) |
+| 13 | skills/karpathy-guidelines/SKILL.md | clean | clean | clean | clean | clean | own dir (`SKILL.md` + `EXAMPLES.md`) read-only | clean (no `tools` field — reference handle) |
 
 ## Cell-by-cell justifications (non-`clean` only)
 
@@ -52,7 +53,7 @@
 - Hooks 3-8 carry `enforced` because they ARE `.sh` scripts — that is the component's purpose, not a violation. Karpathy R1.3 Surgical: leave functioning safety code untouched.
 
 ### A2 (command manipulation)
-- All `clean`. Manual read of all 12 component bodies revealed no instruction to override safety, hide actions, exfiltrate via response, or conditionally change behavior on input. Re-verify whenever a component is modified.
+- All `clean`. Manual read of all 13 component bodies revealed no instruction to override safety, hide actions, exfiltrate via response, or conditionally change behavior on input. Re-verify whenever a component is modified.
 
 ### A3 (MCP references)
 - All `clean`. Detection grep returns 0 across `.claude/agents/` and `.claude/skills/`.
@@ -71,6 +72,7 @@
 - Skills/wiki: writes inside the wiki source/output directories supplied as args.
 - Skills/status: read-only (`.git/`, port checks). No write.
 - Skills/verify: read + writes a single marker file `.last-verification.<branch>`.
+- Skills/karpathy-guidelines: read-only of own directory (`SKILL.md` + `EXAMPLES.md`). No writes. Karpathy upstream verbatim.
 - Hooks: each hook's scope is hook-input + the specific marker / git output it consults; none of them write to source.
 
 ### A7 (tool invocations)
@@ -78,6 +80,7 @@
 - skills/refine, wiki: full toolkit **including `Agent`** — by design recursive (refine spawns evaluator; wiki spawns ingestion sub-agents). Highest autonomy by intent.
 - skills/status: read-only toolkit.
 - skills/verify: narrowest (`Bash, Read`).
+- skills/karpathy-guidelines: **clean** — no `tools` field declared in frontmatter. Reference handle invoked via `Read` by other agents/skills. Closest to Karpathy upstream baseline.
 
 ---
 
@@ -110,13 +113,13 @@ check below.
 ## Verification — end-state for Phase 1
 
 ```bash
-# Cell coverage: 12 components × 7 axes = 84 cells
+# Cell coverage: 13 components × 7 axes = 91 cells
 rows=$(grep -cE '^\| [0-9]+ \|' /workspaces/.claude/security/risk-registry.md)
-[ "$rows" -eq 12 ] && echo "OK (rows=$rows)" || echo "FAIL (expected 12, got $rows)"
+[ "$rows" -eq 13 ] && echo "OK (rows=$rows)" || echo "FAIL (expected 13, got $rows)"
 ```
 
 Component-list parity with `trust-boundary.md` is implicit by manual review
-(both documents reference the same 12 entities).
+(both documents reference the same 13 entities).
 
 ---
 
